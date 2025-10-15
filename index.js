@@ -427,6 +427,12 @@ SOFTWARE.
         }
     }
 
+    /**
+     * **JavaScript String Compressor - compress function.**
+     * @param {string} str string
+     * @returns {string} Compressed string
+     * @example compress('Hello, World!');
+     */
     function compress(str) {
         if (typeof str != 'string') throw new Error('Invalid input.');
         let repeatBefore = false;
@@ -640,6 +646,11 @@ SOFTWARE.
         }
     }
 
+    /**
+     * **JavaScript String Compressor - decompress function.**
+     * @param {string} str Compressed string
+     * @returns {string} Decompressed string
+     */
     function decompress(str) {
         if (typeof str != 'string') throw new Error('Invalid input.');
         const strcodes= cryptCharCode(str.charCodeAt(0) - 32, true);
@@ -711,6 +722,10 @@ SOFTWARE.
         }
     }
 
-    return {compress, decompress};
+    return {compress, decompress,
+        get[Symbol.toStringTag]() {
+            return 'JSSC';
+        }
+    };
 
 }));
