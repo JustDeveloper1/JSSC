@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - run: mv index.js website/script.js && mv test/node/test.js website/test.js
+      - run: mv index.js website/script.js && mv test/node/test.js website/test.js && printf "/*\n\n%s\n\n*/\n\n" "$(cat LICENSE)" | cat - "website/script.js" > temp.js && mv temp.js "website/script.js"
       - name: Generate docs with Just an Ultimate Site Tool
         uses: js-just/latest@main
         with:
