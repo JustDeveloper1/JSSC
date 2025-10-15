@@ -449,7 +449,7 @@ SOFTWARE.
         }
         const d = (txt) => !/\d/.test(txt);
         if (d(str)) {
-            str = repeatChars(str)
+            str = repeatChars(str);
             repeatBefore = true;
         }
         const strdata = stringCodes(str);
