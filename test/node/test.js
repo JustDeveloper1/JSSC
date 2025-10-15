@@ -16,5 +16,5 @@ const lines = [
     `Text         (${tbits / 8} bytes)           :   ${text}`,
     `Compressed   (${cbits / 8} bytes)           :   ${compressed.padStart(decompressed.length, ' ')}`,
     `Decompressed (${dbits / 8} bytes)           :   ${decompressed}`,
-]; lines[0] = lines[0].padStart(Math.floor(lines[2].length / 2));
+]; lines[0] = lines[0].padStart(Math.floor(lines[2].length / 2 - lines[0].length / 2), ' ');
 for (const line of lines) console.log(line);
