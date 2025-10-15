@@ -1,6 +1,8 @@
 _just: title: JSSC
 #### An UMD compression algorithm for strings in JavaScript.
-> ...
+> It compresses a string using multiple methods, including its own character encodings.
+- [How it works?](/#How%20it%20works)
+- [List of character encodings](/encodings)
 
 ## Installation
 Install via npm
@@ -23,3 +25,6 @@ Try JavaScript String Compressor in your browser:
     <button onclick="compress()">Compress</button>
     <button onclick="decompress()">Decompress</button>
 </div>
+
+## How it works?
+...
