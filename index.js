@@ -125,7 +125,7 @@ SOFTWARE.
         'JA':    9,
         'Telu': 10,
         'MR':   11,
-    }
+    };
     _JSSC.BASE = function() { /* Base */
         const chrsBase = charsBase();
         const addCBase = [
@@ -209,7 +209,7 @@ SOFTWARE.
         8379, 402, 8359, 2546, 8371, 8367, 
         8356, 8375, 2553, 8368, 8352, 8499, 
         8374, 2555
-    ]
+    ];
     /*
         ASCII (charsLatin) // English, Spanish, Portuguese, French, German
     */
@@ -224,7 +224,7 @@ SOFTWARE.
         chrsBase[maxI + 1] = _JSSC._char(1025); /*  Unicode 0401 ( Ё ) */
         chrsBase[maxI + 2] = _JSSC._char(1105); /*  Unicode 0451 ( ё ) */
         return chrsBase;
-    }
+    };
     _JSSC.RU = function() { /* Russian, Ukrainian, Belarusian, Kazakh */
         const chrsBase = _JSSC._RU(charsBase);
         let i = 65;
@@ -245,7 +245,7 @@ SOFTWARE.
         chrsBase[111] = 'I';
 
         return chrsBase;
-    }
+    };
     _JSSC.ENRU = function() { /* English, Russian, Ukrainian, Belarusian */
         const chrsBase = _JSSC._RU(charsLatin);
         let i = 194;
@@ -259,7 +259,7 @@ SOFTWARE.
             chrsBase[i++] = _JSSC._char(char);
         }
         return chrsBase;
-    }
+    };
     _JSSC.ENKK = function() { /* English, Russian, Kazakh */
         const chrsBase = _JSSC._RU(charsLatin);
         let i = 194;
@@ -270,14 +270,14 @@ SOFTWARE.
             chrsBase[i++] = _JSSC._char(char);
         }
         return chrsBase;
-    }
+    };
     _JSSC._HI = function(baseOrLatin) {
         const chrsBase = baseOrLatin();
         for (let i = 2304; i < 2432; i++) {
             chrsBase[i - 2176] = _JSSC._char(i); /* Unicode 0900 - 097F */
         }
         return chrsBase;
-    }
+    };
     _JSSC._Ind = [
         8377, 8360, 78, 2547,
         2404, 
@@ -293,10 +293,10 @@ SOFTWARE.
             }
         }
         return chrsBase
-    }
+    };
     _JSSC.ENHI = function() { /* English, Hindi */
         return _JSSC._HI(charsLatin); 
-    }
+    };
     _JSSC._BN = function(baseOrLatin) {
         const chrsBase = baseOrLatin();
         for (let i = 2432; i < 2559; i++) {
@@ -304,7 +304,7 @@ SOFTWARE.
         }
         chrsBase[255] = _JSSC._char(2404);
         return chrsBase;
-    }
+    };
     _JSSC.BN = function() { /* Bengali */
         const chrsBase = _JSSC._BN(charsBase);
         let i = 65;
@@ -315,10 +315,10 @@ SOFTWARE.
             }
         }
         return chrsBase;
-    }
+    };
     _JSSC.ENBN = function() { /* English, Bengali */
         return _JSSC._BN(charsLatin);
-    }
+    };
     _JSSC.HIBN = function() { /* Hindi, Bengali */
         const chrsBase = {};
         for (let i = 2304; i < 2559; i++) {
@@ -326,7 +326,7 @@ SOFTWARE.
         }
         chrsBase[255] = ' ';
         return chrsBase;
-    }
+    };
     _JSSC._JA = [
         [
             65371, 65373,  65288, 65289,  65339, 65341,  12304, 12305,
@@ -346,7 +346,7 @@ SOFTWARE.
             8230, 8229, 
             165,
         ]
-    ]
+    ];
     _JSSC.JA = function() { /* English, Hiragana (Japanese), Katakana (Japanese) */
         const chrsBase = charsLatin();
         let i = 128;
@@ -366,7 +366,7 @@ SOFTWARE.
         chrsBase[19] = _JSSC._char(21315);
         chrsBase[20] = _JSSC._char(19975);
         return chrsBase;
-    }
+    };
     _JSSC.Telu = function() { /* English, Telugu */
         const chrsBase = charsLatin();
         for (let i = 3073; i < 3184; i++) { /* Unicode 0C01 - 0C6F */
@@ -379,14 +379,14 @@ SOFTWARE.
             chrsBase[i++] = _JSSC._char(char);
         }
         return chrsBase;
-    }
+    };
     _JSSC.MR = function() { /* English, Marathi */
         const chrsBase = charsLatin();
         for (let i = 0x900; i < 0x980; i++) {
             chrsBase[i - 2176] = _JSSC._char(i);
         }
         return chrsBase;
-    }
+    };
     _JSSC.use = class {
         constructor() {
             let output = {};
@@ -398,10 +398,10 @@ SOFTWARE.
             Object.freeze(output);
             return output;
         }
-    }
+    };
     _JSSC._begin = [
         'https://', 'http://', 'file://', 'mailto:', 'ftp://', 'data:', 'tel:', 'sms:'
-    ]
+    ];
     Object.freeze(_JSSC.use);
 
     function cryptCharCode(
