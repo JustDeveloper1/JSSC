@@ -93,7 +93,7 @@ SOFTWARE.
     }
 
     function charsBase() {
-        const charsBase = {}
+        const charsBase = {};
         function addChar(i) {
             charsBase[i] = String.fromCharCode(i);
         }
@@ -103,14 +103,14 @@ SOFTWARE.
         return charsBase;
     }
     function charsLatin() {
-        const charsLatin = {}
+        const charsLatin = {};
         for (let i = 0; i < 128; i++) {
             charsLatin[i] = String.fromCharCode(i); /* ASCII 00 - 7F */
         }
         return charsLatin;
     }
 
-    const _JSSC = {}
+    const _JSSC = {};
     _JSSC._char = (cde) => String.fromCharCode(cde);
     _JSSC._IDs = {
         'BASE':  0,
@@ -148,7 +148,7 @@ SOFTWARE.
             8585, 8319, 8305,
 
             8709, 8730, 8734,
-        ]
+        ];
         for (let i = 161; i < 168; i++) {
             addCBase.push(i);
         }
@@ -320,7 +320,7 @@ SOFTWARE.
         return _JSSC._BN(charsLatin);
     }
     _JSSC.HIBN = function() { /* Hindi, Bengali */
-        const chrsBase = {}
+        const chrsBase = {};
         for (let i = 2304; i < 2559; i++) {
             chrsBase[i - 2176 - 128] = _JSSC._char(i);
         }
