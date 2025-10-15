@@ -4,7 +4,7 @@ _just: title: JSSC
 
 ## Installation
 Install via npm
-```cmd
+```
 npm i string-compressor
 ```
 
