@@ -27,11 +27,11 @@ SOFTWARE.
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define([], factory);        // amd
+        define([], factory);        /*   amd    */
     } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory(); // node
+        module.exports = factory(); /*   node   */
     } else {
-        root.JSSC = factory();      // browsers
+        root.JSSC = factory();      /* browsers */
         Object.freeze(root.JSSC);
     }
 }(typeof self !== 'undefined' ? self : this, function () {
@@ -97,15 +97,15 @@ SOFTWARE.
         function addChar(i) {
             charsBase[i] = String.fromCharCode(i);
         }
-        for (let i = 0; i < 65; i++)    addChar(i); // ASCII 00 - 40
-        for (let i = 91; i < 97; i++)   addChar(i); // ASCII 5B - 60
-        for (let i = 123; i < 128; i++) addChar(i); // ASCII 7B - 7F
+        for (let i = 0; i < 65; i++)    addChar(i); /* ASCII 00 - 40 */
+        for (let i = 91; i < 97; i++)   addChar(i); /* ASCII 5B - 60 */
+        for (let i = 123; i < 128; i++) addChar(i); /* ASCII 7B - 7F */
         return charsBase;
     }
     function charsLatin() {
         const charsLatin = {}
         for (let i = 0; i < 128; i++) {
-            charsLatin[i] = String.fromCharCode(i); // ASCII 00 - 7F
+            charsLatin[i] = String.fromCharCode(i); /* ASCII 00 - 7F */
         }
         return charsLatin;
     }
@@ -126,7 +126,7 @@ SOFTWARE.
         'Telu': 10,
         'MR':   11,
     }
-    _JSSC.BASE = function() { // Base
+    _JSSC.BASE = function() { /* Base */
         const chrsBase = charsBase();
         const addCBase = [
             215,  247, 8722, 11800,
@@ -218,14 +218,14 @@ SOFTWARE.
         let maxI = 0;
         for (let i = 1040; i < 1104; i++) {
             const curI = i - 912;
-            chrsBase[curI] = _JSSC._char(i);// Unicode 0410 - 044F
+            chrsBase[curI] = _JSSC._char(i);    /* Unicode 0410 - 044F */
             maxI = Math.max(maxI, curI);
         }
-        chrsBase[maxI + 1] = _JSSC._char(1025); // Unicode 0401 ( Ё )
-        chrsBase[maxI + 2] = _JSSC._char(1105); // Unicode 0451 ( ё )
+        chrsBase[maxI + 1] = _JSSC._char(1025); /*  Unicode 0401 ( Ё ) */
+        chrsBase[maxI + 2] = _JSSC._char(1105); /*  Unicode 0451 ( ё ) */
         return chrsBase;
     }
-    _JSSC.RU = function() { // Russian, Ukrainian, Belarusian, Kazakh
+    _JSSC.RU = function() { /* Russian, Ukrainian, Belarusian, Kazakh */
         const chrsBase = _JSSC._RU(charsBase);
         let i = 65;
         for (const char of _JSSC._BASE.concat(_JSSC._MATH, [
@@ -246,7 +246,7 @@ SOFTWARE.
 
         return chrsBase;
     }
-    _JSSC.ENRU = function() { // English, Russian, Ukrainian, Belarusian
+    _JSSC.ENRU = function() { /* English, Russian, Ukrainian, Belarusian */
         const chrsBase = _JSSC._RU(charsLatin);
         let i = 194;
         for (const char of _JSSC._BASE.concat([
@@ -260,7 +260,7 @@ SOFTWARE.
         }
         return chrsBase;
     }
-    _JSSC.ENKK = function() { // English, Russian, Kazakh
+    _JSSC.ENKK = function() { /* English, Russian, Kazakh */
         const chrsBase = _JSSC._RU(charsLatin);
         let i = 194;
         for (const char of _JSSC._BASE.concat([
@@ -274,7 +274,7 @@ SOFTWARE.
     _JSSC._HI = function(baseOrLatin) {
         const chrsBase = baseOrLatin();
         for (let i = 2304; i < 2432; i++) {
-            chrsBase[i - 2176] = _JSSC._char(i); // Unicode 0900 - 097F
+            chrsBase[i - 2176] = _JSSC._char(i); /* Unicode 0900 - 097F */
         }
         return chrsBase;
     }
@@ -283,7 +283,7 @@ SOFTWARE.
         2404, 
         215, 247,
     ];
-    _JSSC.HI = function() { // Hindi
+    _JSSC.HI = function() { /* Hindi */
         const chrsBase = _JSSC._HI(charsBase);
         let i = 65;
         for (const char of _JSSC._BASE.concat(_JSSC._Ind)) {
@@ -294,18 +294,18 @@ SOFTWARE.
         }
         return chrsBase
     }
-    _JSSC.ENHI = function() { // English, Hindi
+    _JSSC.ENHI = function() { /* English, Hindi */
         return _JSSC._HI(charsLatin); 
     }
     _JSSC._BN = function(baseOrLatin) {
         const chrsBase = baseOrLatin();
         for (let i = 2432; i < 2559; i++) {
-            chrsBase[i - 2304] = _JSSC._char(i) // Unicode 0980 - 09FF
+            chrsBase[i - 2304] = _JSSC._char(i) /* Unicode 0980 - 09FF */
         }
         chrsBase[255] = _JSSC._char(2404);
         return chrsBase;
     }
-    _JSSC.BN = function() { // Bengali
+    _JSSC.BN = function() { /* Bengali */
         const chrsBase = _JSSC._BN(charsBase);
         let i = 65;
         for (const char of _JSSC._BASE.concat(_JSSC._Ind)) {
@@ -316,10 +316,10 @@ SOFTWARE.
         }
         return chrsBase;
     }
-    _JSSC.ENBN = function() { // English, Bengali
+    _JSSC.ENBN = function() { /* English, Bengali */
         return _JSSC._BN(charsLatin);
     }
-    _JSSC.HIBN = function() { // Hindi, Bengali
+    _JSSC.HIBN = function() { /* Hindi, Bengali */
         const chrsBase = {}
         for (let i = 2304; i < 2559; i++) {
             chrsBase[i - 2176 - 128] = _JSSC._char(i);
@@ -347,12 +347,12 @@ SOFTWARE.
             165,
         ]
     ]
-    _JSSC.JA = function() { // English, Hiragana (Japanese), Katakana (Japanese)
+    _JSSC.JA = function() { /* English, Hiragana (Japanese), Katakana (Japanese) */
         const chrsBase = charsLatin();
         let i = 128;
         for (const char of _JSSC._JA[0].concat(
-            Array.from({ length : 46 }, (v, j) => j + 12352 ), // Unicode 3040 - 309F
-            Array.from({ length : 46 }, (v, j) => j + 12448 ), // Unicode 30A0 - 30FF
+            Array.from({ length : 46 }, (v, j) => j + 12352 ), /* Unicode 3040 - 309F */
+            Array.from({ length : 46 }, (v, j) => j + 12448 ), /* Unicode 30A0 - 30FF */
             _JSSC._JA[1], [
                 19968, 20108, 19977, 
                 22235, 20116, 20845, 
@@ -367,9 +367,9 @@ SOFTWARE.
         chrsBase[20] = _JSSC._char(19975);
         return chrsBase;
     }
-    _JSSC.Telu = function() { // English, Telugu
+    _JSSC.Telu = function() { /* English, Telugu */
         const chrsBase = charsLatin();
-        for (let i = 3073; i < 3184; i++) { // Unicode 0C01 - 0C6F
+        for (let i = 3073; i < 3184; i++) { /* Unicode 0C01 - 0C6F */
             chrsBase[i - 2945] = _JSSC._char(i);
         }
         let i = 239;
@@ -380,7 +380,7 @@ SOFTWARE.
         }
         return chrsBase;
     }
-    _JSSC.MR = function() { // English, Marathi
+    _JSSC.MR = function() { /* English, Marathi */
         const chrsBase = charsLatin();
         for (let i = 0x900; i < 0x980; i++) {
             chrsBase[i - 2176] = _JSSC._char(i);
@@ -467,8 +467,8 @@ SOFTWARE.
                 return out;
             }
         }
-        if (/^\d+$/.test(str)) {
-            // Up to 8:1 compression ratio
+        if (/^\d+$/.test(str)) { /* Numbers */
+            /* Up to 8:1 compression ratio */
             const convertNums = {
                 'A': 10,
                 'B': 11,
@@ -503,7 +503,7 @@ SOFTWARE.
             checkOutput(output);
             return charCode(cryptCharCode(3, false, false, repeatAfter, -1))+processOutput(output);
         } else if (strdata.max === 2 && strdata.min === 2) {
-            // Up to 3:1 compression ratio
+            /* Up to 3:1 compression ratio */
             let chars = strdata.output;
             let output = '';
             function addChar(codee) {
@@ -539,7 +539,7 @@ SOFTWARE.
             checkOutput(output);
             return charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId))+processOutput(output);
         } else if (ascii) {
-            // Up to 2:1 compression ratio
+            /* Up to 2:1 compression ratio */
             /*
                 Bytes
 
@@ -607,12 +607,12 @@ SOFTWARE.
                 for (const characterCode of convertCharCodes) {
                     outputStr += String.fromCharCode(binToDec(characterCode))
                 }
-                // Up to 2:1 compression ratio
+                /* Up to 2:1 compression ratio */
                 checkOutput(outputStr);
                 return charCode(cryptCharCode(charEncodingID + 5, false, repeatBefore, repeatAfter, beginId))+processOutput(outputStr);
             }
 
-            // 1:1 compression ratio (no compression)
+            /* 1:1 compression ratio (no compression) */
             checkOutput(str);
             return charCode(cryptCharCode(0, false, repeatBefore, repeatAfter, beginId))+processOutput(str);
         }
