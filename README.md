@@ -1,2 +1,1 @@
-# JSSC
-JavaScript String Compressor
+# JavaScript String Compressor
