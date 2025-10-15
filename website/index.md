@@ -3,7 +3,10 @@ _just: title: JSSC
 > ...
 
 ## Installation
-...
+Install via npm
+```cmd
+npm i string-compressor
+```
 
 Or you can use it on your website by inserting the following HTML `script` tag.
 ```html
@@ -16,7 +19,7 @@ Try JavaScript String Compressor in your browser:
 <script src="script.js" defer></script>
 <script src="demo.js" defer></script>
 <script src="test.js" defer></script>
-<div style="gap: 11px; display: flex;">
+<div style="gap: 11px; display: flex; margin-top: -61px;">
     <button onclick="compress()">Compress</button>
     <button onclick="decompress()">Decompress</button>
 </div>
