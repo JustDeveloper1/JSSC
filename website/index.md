@@ -11,22 +11,18 @@ Install via npm
 ```
 npm i strc
 ```
-
 Or you can use it on your website by inserting the following HTML `script` tag.
 ```html
 <script type="text/javascript" src="https://jssc.js.org/script.js"></script>
 ```
 
 ## Usage
-#### JavaScript
 ```js
 const { compress, decompress } = require('strc');
 
 const example = compress("Hello, world!");
 decompress(example);
 ```
-
-#### TypeScript
 ```ts
 import { compress, decompress } from 'strc';
 
@@ -34,7 +30,7 @@ const example = compress("Hello, world!");
 decompress(example);
 ```
 
-#### Browsers/Frontend (static websites)
+**Browsers/Frontend (static websites)**
 ```html
 <script type="text/javascript" src="https://jssc.js.org/script.js"></script>
 ```
@@ -44,9 +40,11 @@ const decompressed = JSSC.decompress(compressed);
 ```
 
 ## API
-#### `compress(str: string): string`
+
+**`compress(str: string): string`**
 Compresses a string and returns the compressed result.
-#### `decompress(str: string): string`
+
+**`decompress(str: string): string`**
 Decompresses a previously compressed string.
 
 ## Demo
