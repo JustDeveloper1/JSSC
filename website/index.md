@@ -1,19 +1,53 @@
 _just: title: JSSC
 #### An UMD compression algorithm for strings in JavaScript.
-> It compresses a string using multiple methods, including its own character encodings.
-- [How it works?](/#How%20it%20works%3F)
-- [List of character encodings](/encodings)
+Advanced string compression library supporting multiple languages and character encodings.
+- 🗜️ High compression ratios (up to 8:1 for numbers)
+- 🌍 Multilingual support (English, Russian, Japanese, Hindi, Bengali, and more)
+- 🔧 Zero dependencies
+- 📦 TypeScript support
 
 ## Installation
 Install via npm
 ```
-npm i string-compressor
+npm i strc
 ```
 
 Or you can use it on your website by inserting the following HTML `script` tag.
 ```html
 <script type="text/javascript" src="https://jssc.js.org/script.js"></script>
 ```
+
+## Usage
+#### JavaScript
+```js
+const { compress, decompress } = require('strc');
+
+const example = compress("Hello, world!");
+decompress(example);
+```
+
+#### TypeScript
+```ts
+import { compress, decompress } from 'strc';
+
+const example = compress("Hello, world!");
+decompress(example);
+```
+
+#### Browsers/Frontend (static websites)
+```html
+<script type="text/javascript" src="https://jssc.js.org/script.js"></script>
+```
+```js
+const compressed   = JSSC.compress("Hello, world!");
+const decompressed = JSSC.decompress(compressed);
+```
+
+## API
+#### `compress(str: string): string`
+Compresses a string and returns the compressed result.
+#### `decompress(str: string): string`
+Decompresses a previously compressed string.
 
 ## Demo
 Try JavaScript String Compressor in your browser:
@@ -26,5 +60,5 @@ Try JavaScript String Compressor in your browser:
     <button onclick="decompress()">Decompress</button>
 </div>
 
-## How it works?
-...
+## License
+[MIT © 2025 JustDeveloper](https://github.com/JustDeveloper1/JSSC/blob/main/LICENSE)
