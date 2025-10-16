@@ -22,7 +22,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-
 */
 
 (function (root, factory) {
@@ -432,6 +431,7 @@ SOFTWARE.
      * @param {string} str string
      * @returns {string} Compressed string
      * @example compress('Hello, World!');
+     * @since 1.0.0
      */
     function compress(str) {
         if (typeof str != 'string') throw new Error('Invalid input.');
@@ -650,6 +650,7 @@ SOFTWARE.
      * **JavaScript String Compressor - decompress function.**
      * @param {string} str Compressed string
      * @returns {string} Decompressed string
+     * @since 1.0.0
      */
     function decompress(str) {
         if (typeof str != 'string') throw new Error('Invalid input.');
