@@ -1,7 +1,7 @@
 _just: title: JSSC
 #### An UMD compression algorithm for strings in JavaScript.
 > It compresses a string using multiple methods, including its own character encodings.
-- [How it works?](/#How%20it%20works)
+- [How it works?](/#How%20it%20works%3F)
 - [List of character encodings](/encodings)
 
 ## Installation
