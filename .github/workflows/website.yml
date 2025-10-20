@@ -27,7 +27,6 @@ jobs:
         uses: js-just/latest@main
         with:
           path: website
-          fix-path: JSSC
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
