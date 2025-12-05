@@ -24,6 +24,17 @@ SOFTWARE.
 
 */
 
+/*
+        _______________
+    __ / / __/ __/ ___/
+   / // /\ \_\ \/ /__  
+   \___/___/___/\___/  
+                       
+   JavaScript String Compressor
+   https://jssc.js.org/
+
+*/
+
 /**
  * JavaScript String Compressor - compress function
  * @param str - Input string to compress

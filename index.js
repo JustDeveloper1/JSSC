@@ -24,6 +24,17 @@ SOFTWARE.
 
 */
 
+/*
+        _______________
+    __ / / __/ __/ ___/
+   / // /\ \_\ \/ /__  
+   \___/___/___/\___/  
+                       
+   JavaScript String Compressor
+   https://jssc.js.org/
+
+*/
+
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define([], factory);        /*   amd    */
@@ -51,7 +62,7 @@ SOFTWARE.
             maxCharCode = Math.max(maxCharCode, code);
             min = Math.min(min, code.toString().length);
         });
-        return {max, output, maxCharCode, min}
+        return {max, output, maxCharCode, min};
     }
 
     function codesString(cds) {
@@ -406,7 +417,7 @@ SOFTWARE.
     function cryptCharCode(
         code, get = false,
         repeatBefore = false, repeatAfter = false,
-        beginId = -1,
+        beginId = -1, code2 = 0
     ) {
         if (get) {
             const codeBin = decToBin(code, 16);
@@ -418,11 +429,19 @@ SOFTWARE.
                 repeatBefore: codeSet[0] === '1',
                 repeatAfter: codeSet[1] === '1',
                 beginId: codeSet[2] === '1' ? begid : -1,
+                code2: binToDec(codeBin.slice(0,5)),
+                bin: codeBin // debug
             }
         } else {
-            const codeBin = decToBin(code, 5);
-            const beginBin = beginId >= 0 ? decToBin(beginId, 3) : '';
-            return binToDec(String(beginBin) + String(repeatBefore ? '1' : '0') + String(repeatAfter ? '1' : '0') + String(beginId >= 0 ? '1' : '0') + String(codeBin));
+            const sixteenBit = 
+                decToBin(code2, 5) +                            // Bits 0-4: code2
+                (beginId >= 0 ? decToBin(beginId, 3) : '000') + // Bits 5-7: beginId
+                (repeatBefore ? '1' : '0') +                    // Bit 8: repeatBefore
+                (repeatAfter ? '1' : '0') +                     // Bit 9: repeatAfter
+                (beginId >= 0 ? '1' : '0') +                    // Bit 10: hasBeginId
+                decToBin(code, 5);                              // Bits 11-15: code1
+            
+            return binToDec(sixteenBit);
         }
     }
 
@@ -467,6 +486,7 @@ SOFTWARE.
                 return out;
             }
         }
+        const UniqueCodes = [...new Set(strdata.output)];
         if (/^\d+$/.test(str)) { /* Numbers */
             /* Up to 8:1 compression ratio */
             const convertNums = {
@@ -610,6 +630,39 @@ SOFTWARE.
                 /* Up to 2:1 compression ratio */
                 checkOutput(outputStr);
                 return charCode(cryptCharCode(charEncodingID + 5, false, repeatBefore, repeatAfter, beginId))+processOutput(outputStr);
+            } else if (UniqueCodes.length < 16) {
+                /* Up to 4:1 compression ratio */
+                const chars = UniqueCodes;
+                let output = '';
+                for (const char of chars) {
+                    output += String.fromCharCode(char);
+                }
+                
+                let char_ = [];
+                for (const charCode of strdata.output) {
+                    const index = UniqueCodes.indexOf(charCode);
+                    
+                    if (char_.length === 4) {
+                        let outchar = '';
+                        for (const index of char_) {
+                            outchar += decToBin(index, 4);
+                        }
+                        output += String.fromCharCode(binToDec(outchar));
+                        char_ = [];
+                    }
+                    char_.push(index);
+                }
+                
+                if (char_.length > 0) {
+                    let outchar = '';
+                    for (const index of char_) {
+                        outchar += decToBin(index, 4);
+                    }
+                    output += String.fromCharCode(binToDec(outchar.padStart(16, '1')));
+                }
+                
+                checkOutput(output);
+                return charCode(cryptCharCode(4, false, repeatBefore, repeatAfter, beginId, UniqueCodes.length))+processOutput(output);
             }
 
             /* 1:1 compression ratio (no compression) */
@@ -713,6 +766,21 @@ SOFTWARE.
                         const numm = binToDec(binCode);
                         if (numm != 15) {
                             output += numm.toString(10);
+                        }
+                    }
+                }
+                return processOutput(output);
+            case 4:
+                const chars = [];
+                for (const char of realstr.slice(0,strcodes.code2).split('')) {
+                    chars.push(char);
+                }
+                for (const char of realstr.slice(strcodes.code2).split('')) {
+                    const binCodes = stringChunks(decToBin(char.charCodeAt(0), 16), 4);
+                    for (const binCode of binCodes) {
+                        if (binCode != '1111') {
+                            const numm = binToDec(binCode);
+                            output += chars[numm];
                         }
                     }
                 }
