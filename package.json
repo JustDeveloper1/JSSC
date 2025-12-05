@@ -1,6 +1,6 @@
 {
   "name": "strc",
-  "version": "1.0.0a",
+  "version": "1.1.0",
   "description": "JavaScript String Compressor",
   "main": "index.js",
   "scripts": {
