@@ -417,7 +417,7 @@ SOFTWARE.
     function cryptCharCode(
         code, get = false,
         repeatBefore = false, repeatAfter = false,
-        beginId = -1, code2 = 0
+        beginId = -1, code2 = 0, sequences = false
     ) {
         if (get) {
             const codeBin = decToBin(code, 16);
@@ -429,20 +429,173 @@ SOFTWARE.
                 repeatBefore: codeSet[0] === '1',
                 repeatAfter: codeSet[1] === '1',
                 beginId: codeSet[2] === '1' ? begid : -1,
-                code2: binToDec(codeBin.slice(0,5)),
-                bin: codeBin // debug
+                code2: binToDec(codeBin.slice(0,4)),
+                sequences: codeBin.slice(4,5) === '1',
+                code3: codeSet[2] === '0' ? begid : -1, /* currently unused */
+                bin: codeBin,
             }
         } else {
-            const sixteenBit = 
-                decToBin(code2, 5) +                            // Bits 0-4: code2
-                (beginId >= 0 ? decToBin(beginId, 3) : '000') + // Bits 5-7: beginId
-                (repeatBefore ? '1' : '0') +                    // Bit 8: repeatBefore
-                (repeatAfter ? '1' : '0') +                     // Bit 9: repeatAfter
-                (beginId >= 0 ? '1' : '0') +                    // Bit 10: hasBeginId
-                decToBin(code, 5);                              // Bits 11-15: code1
+            const sixteenBits =                                 /* 16-bit Data/Header character */
+
+                decToBin(code2, 4) +                            /* Bits  0-3  :           code2 */
+                (sequences ? '1' : '0') +                       /* Bit    4   :      sequences? */
+                (beginId >= 0 ? decToBin(beginId, 3) : '000') + /* Bits  5-7  : beginID | code3 */
+                (repeatBefore ? '1' : '0') +                    /* Bit    8   :      input RLE? */
+                (repeatAfter ? '1' : '0') +                     /* Bit    9   :     output RLE? */
+                (beginId >= 0 ? '1' : '0') +                    /* Bit   10   :        beginID? */
+                decToBin(code, 5);                              /* Bits 11-15 :           code1 */
             
-            return binToDec(sixteenBit);
+            return binToDec(sixteenBits);
         }
+    }
+
+    const SEQUENCE_MARKER = '\uDBFF'; /* Private Use Area */
+
+    function findSequences(str, minLength = 2, minCount = 3) {
+        const repeats = [];
+        const n = str.length;
+        
+        for (let i = 0; i < n - minLength * minCount + 1; i++) {
+            for (let len = 2; len <= Math.min(30, Math.floor((n - i) / minCount)); len++) {
+                const pattern = str.substr(i, len);
+                if (pattern.includes(SEQUENCE_MARKER)) continue;
+                
+                let count = 1;
+                for (let j = i + len; j <= n - len; j += len) {
+                    if (str.substr(j, len) === pattern) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count >= minCount) {
+                    const end = i + len * count;
+                    let overlaps = false;
+                    for (const r of repeats) {
+                        if (i < r.end && end > r.start) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!overlaps) {
+                        repeats.push({
+                            start: i,
+                            end: end,
+                            length: len,
+                            pattern: pattern,
+                            count: count,
+                            saved: (len * count) - (len + 3)
+                        });
+                        i = end - 1;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return repeats.sort((a, b) => b.saved - a.saved);
+    }
+
+    function compressSequences(str) {
+        if (str.length < 20) return {compressed: str, sequences: false};
+        
+        if (str.includes(SEQUENCE_MARKER)) {
+            return {compressed: str, sequences: false};
+        }
+        
+        const repeats = findSequences(str, 2, 3);
+        if (repeats.length === 0) return {compressed: str, sequences: false};
+        
+        const selected = [];
+        let covered = new Array(str.length).fill(false);
+        
+        for (const repeat of repeats) {
+            let canUse = true;
+            for (let i = repeat.start; i < repeat.end; i++) {
+                if (covered[i]) {
+                    canUse = false;
+                    break;
+                }
+            }
+            
+            if (canUse && repeat.saved > 0) {
+                selected.push(repeat);
+                for (let i = repeat.start; i < repeat.end; i++) {
+                    covered[i] = true;
+                }
+            }
+        }
+        
+        if (selected.length === 0) return {compressed: str, sequences: false};
+
+        let result = '';
+        let pos = 0;
+        
+        for (const repeat of selected) {
+            if (pos < repeat.start) {
+                result += str.slice(pos, repeat.start);
+            }
+            
+            // sequence encoding: [marker][length][count][pattern]
+            const lengthChar = String.fromCharCode(Math.min(repeat.length, 30) + 32);
+            const countChar = String.fromCharCode(Math.min(repeat.count, 65535) + 32);
+            result += SEQUENCE_MARKER + lengthChar + countChar + repeat.pattern;
+            
+            pos = repeat.end;
+        }
+        
+        if (pos < str.length) {
+            result += str.slice(pos);
+        }
+        
+        // check if it's worth it
+        if (result.length < str.length * 0.9) { /* at least 10% */
+            return {compressed: result, sequences: true};
+        }
+        
+        return {compressed: str, sequences: false};
+    }
+
+    function decompressSequences(str) {
+        let result = '';
+        let i = 0;
+        
+        while (i < str.length) {
+            if (str.charCodeAt(i) === 0xDBFF) {
+                i++;
+                
+                if (i + 2 >= str.length) {
+                    result += SEQUENCE_MARKER;
+                    continue;
+                }
+                
+                const length = str.charCodeAt(i) - 32;
+                const count = str.charCodeAt(i + 1) - 32;
+                i += 2;
+                
+                if (i + length > str.length) {
+                    result += SEQUENCE_MARKER + 
+                             String.fromCharCode(length + 32) + 
+                             String.fromCharCode(count + 32) +
+                             str.slice(i);
+                    break;
+                }
+                
+                const pattern = str.substr(i, length);
+                i += length;
+                
+                for (let j = 0; j < count; j++) {
+                    result += pattern;
+                }
+            } else {
+                result += str.charAt(i);
+                i++;
+            }
+        }
+        
+        return result;
     }
 
     /**
@@ -474,18 +627,26 @@ SOFTWARE.
         const strdata = stringCodes(str);
         const ascii = strdata.maxCharCode < 256;
         let repeatAfter = false;
-        function checkOutput(out) {
-            if (d(out)) {
+        let sequences = false;
+        
+        function processCompression(output) {
+            const hasDigits = /\d/.test(output);
+            if (!hasDigits) {
                 repeatAfter = true;
+                output = repeatChars(output);
             }
-        }
-        function processOutput(out) {
-            if (repeatAfter) {
-                return repeatChars(out);
-            } else {
-                return out;
+            
+            if (true) {
+                const compressed = compressSequences(output);
+                if (compressed.sequences) {
+                    sequences = true;
+                    return compressed.compressed;
+                }
             }
+            
+            return output;
         }
+
         const UniqueCodes = [...new Set(strdata.output)];
         if (/^\d+$/.test(str)) { /* Numbers */
             /* Up to 8:1 compression ratio */
@@ -520,10 +681,10 @@ SOFTWARE.
             for (const character of chunkArray(binOut, 4)) {
                 output += String.fromCharCode(binToDec(binPadStart(character.join(''))));
             }
-            checkOutput(output);
-            return charCode(cryptCharCode(3, false, false, repeatAfter, -1))+processOutput(output);
+            output = processCompression(output);
+            return charCode(cryptCharCode(3, false, false, repeatAfter, -1, 0, sequences)) + output;
+            
         } else if (strdata.max === 2 && strdata.min === 2) {
-            /* Up to 3:1 compression ratio */
             let chars = strdata.output;
             let output = '';
             function addChar(codee) {
@@ -556,8 +717,9 @@ SOFTWARE.
                     }
                 }
             }
-            checkOutput(output);
-            return charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId))+processOutput(output);
+            output = processCompression(output);
+            return charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId, 0, sequences)) + output;
+            
         } else if (ascii) {
             /* Up to 2:1 compression ratio */
             /*
@@ -587,21 +749,24 @@ SOFTWARE.
             for (const char of twoChars) {
                 output += String.fromCharCode(binToDec(char));
             }
-            checkOutput(output);
-            return charCode(cryptCharCode(2, false, repeatBefore, repeatAfter, beginId))+processOutput(output)
+            output = processCompression(output);
+            return charCode(cryptCharCode(2, false, repeatBefore, repeatAfter, beginId, 0, sequences)) + output;
+            
         } else {
             const characterEncodings = new _JSSC.use();
             const stringArray = str.split('');
             let useCharacterEncoding;
             let charEncodingID = NaN;
+            
             for (const [characterEncodingName, characterEncoding] of Object.entries(characterEncodings)) {
                 const table = characterEncoding();
-                table.length= 256;
-                const arrayy= Array.from(table);
+                table.length = 256;
+                const arrayy = Array.from(table);
                 let usethisone = true;
                 for (const character of stringArray) {
                     if (!arrayy.includes(character)) {
                         usethisone = false;
+                        break;
                     }
                 }
                 if (usethisone) {
@@ -610,6 +775,7 @@ SOFTWARE.
                     break;
                 }
             }
+            
             if (useCharacterEncoding) {
                 const reverseCharacterEncoding = {};
                 for (const [charCode, character] of Object.entries(useCharacterEncoding)) {
@@ -628,8 +794,9 @@ SOFTWARE.
                     outputStr += String.fromCharCode(binToDec(characterCode))
                 }
                 /* Up to 2:1 compression ratio */
-                checkOutput(outputStr);
-                return charCode(cryptCharCode(charEncodingID + 5, false, repeatBefore, repeatAfter, beginId))+processOutput(outputStr);
+                outputStr = processCompression(outputStr);
+                return charCode(cryptCharCode(charEncodingID + 5, false, repeatBefore, repeatAfter, beginId, 0, sequences)) + outputStr;
+                
             } else if (UniqueCodes.length < 16) {
                 /* Up to 4:1 compression ratio */
                 const chars = UniqueCodes;
@@ -661,13 +828,13 @@ SOFTWARE.
                     output += String.fromCharCode(binToDec(outchar.padStart(16, '1')));
                 }
                 
-                checkOutput(output);
-                return charCode(cryptCharCode(4, false, repeatBefore, repeatAfter, beginId, UniqueCodes.length))+processOutput(output);
+                output = processCompression(output);
+                return charCode(cryptCharCode(4, false, repeatBefore, repeatAfter, beginId, UniqueCodes.length, sequences)) + output;
             }
 
             /* 1:1 compression ratio (no compression) */
-            checkOutput(str);
-            return charCode(cryptCharCode(0, false, repeatBefore, repeatAfter, beginId))+processOutput(str);
+            let output = processCompression(str);
+            return charCode(cryptCharCode(0, false, repeatBefore, repeatAfter, beginId, 0, sequences)) + output;
         }
     }
 
@@ -707,29 +874,43 @@ SOFTWARE.
      */
     function decompress(str) {
         if (typeof str != 'string') throw new Error('Invalid input.');
-        const strcodes= cryptCharCode(str.charCodeAt(0) - 32, true);
+        const strcodes = cryptCharCode(str.charCodeAt(0) - 32, true);
         const strcode = strcodes.code;
+        
         function repeatChars(txt) {
             return txt.replace(/(\D)(\d+)/g, (_, g1, g2) => g1.repeat(g2));
         }
-        const realstr = strcodes.repeatAfter ? repeatChars(str.slice(1)) : str.slice(1);
+        
+        /* sequences */
+        let realstr = str.slice(1);
+        if (strcodes.sequences) {
+            realstr = decompressSequences(realstr);
+        }
+        
+        /* RLE */
+        if (strcodes.repeatAfter) {
+            realstr = repeatChars(realstr);
+        }
+        
         function begin(out) {
             if (strcodes.beginId >= 0) {
                 return _JSSC._begin[strcodes.beginId] + out;
-            } else return out
+            } else return out;
         }
+        
         function processOutput(out) {
             if (strcodes.repeatBefore) {
                 return repeatChars(begin(out));
             } else return begin(out);
         }
+        
         let output = '';
         switch (strcode) {
             case 0:
                 return processOutput(realstr);
             case 1:
                 function addChar(cde) {
-                    output += String.fromCharCode(cde)
+                    output += String.fromCharCode(cde);
                 }
                 for (const char of realstr.split('')) {
                     const charcde = String(char.charCodeAt(0));
@@ -772,7 +953,7 @@ SOFTWARE.
                 return processOutput(output);
             case 4:
                 const chars = [];
-                for (const char of realstr.slice(0,strcodes.code2).split('')) {
+                for (const char of realstr.slice(0, strcodes.code2).split('')) {
                     chars.push(char);
                 }
                 for (const char of realstr.slice(strcodes.code2).split('')) {
@@ -786,13 +967,18 @@ SOFTWARE.
                 }
                 return processOutput(output);
             default:
-                const err = () => {throw new Error('')};
-                return processOutput(characterEncodings(strcode, realstr) || err());
+                const decoded = characterEncodings(strcode, realstr);
+                if (decoded) {
+                    return processOutput(decoded);
+                }
+                throw new Error('Invalid compressed string');
         }
     }
 
-    return {compress, decompress,
-        get[Symbol.toStringTag]() {
+    return {
+        compress,
+        decompress,
+        get [Symbol.toStringTag]() {
             return 'JSSC';
         }
     };
