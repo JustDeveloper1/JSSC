@@ -538,7 +538,7 @@ SOFTWARE.
                 result += str.slice(pos, repeat.start);
             }
             
-            // sequence encoding: [marker][length][count][pattern]
+            /* sequence encoding: [marker][length][count][pattern] */
             const lengthChar = String.fromCharCode(Math.min(repeat.length, 30) + 32);
             const countChar = String.fromCharCode(Math.min(repeat.count, 65535) + 32);
             result += SEQUENCE_MARKER + lengthChar + countChar + repeat.pattern;
@@ -550,7 +550,7 @@ SOFTWARE.
             result += str.slice(pos);
         }
         
-        // check if it's worth it
+        /* check if it's worth it */
         if (result.length < str.length * 0.9) { /* at least 10% */
             return {compressed: result, sequences: true};
         }
