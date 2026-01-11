@@ -9,6 +9,23 @@ function stringChunks(str, num) {
     return output
 }
 
+const encodings = [
+    '00: JSSCBASE',
+    '01: JSSCRU',
+    '02: JSSCENRU',
+    '03: JSSCENKK',
+    '04: JSSCHI',
+    '05: JSSCENHI',
+    '06: JSSCBN',
+    '07: JSSCENBN',
+    '08: JSSCHIBN',
+    '09: JSSCJA',
+    '10: JSSCTelu',
+    '11: JSSCMR',
+    '12: JSSCB',
+    '13: JSSCE',
+    '14: JSSCAR',
+];
 const modes = [
     '00: No compression',
     '01: 2-3 characters in 1',
@@ -83,7 +100,7 @@ async function test(text, name) {
         '\n\n\nOriginal:', text, '\n\nCompressed:', a, '\n\nDecompressed:', b, 
         '\n\n\nSuccess?', result, '(Decompressed successfully?', success[0], '; Compressed size ≤ Original size?', success[1], '; .min.js test:', success[2] && success[3], ')\nOriginal size:', toString.length * 16, 'bits\nCompressed size:', a.length * 16, 'bits\nSaved:', toString.length * 16 - a.length * 16, 'bits\nRatio:', (toString.length * 16) / (a.length * 16), 
         ': 1\n\n\n16-bit Data/Header character:', data, '\nCharCode:', data.charCodeAt(0), '\nBits:', bits, '\nBlocks:', ...blocks, '\nCode 1:', code[0], '\nCode 2:', code[1], c.slice(10,11) == '1' ? '\nBeginID:' : '\nCode 3:', code[2], '\nSequences?', c.slice(4,5) == '1', (code[1] > 0 && code[0] == 0) || code[0] == 6 ? '\nReturn as number?' : '\nInput RLE?', c.slice(8,9) == '1', '\nOutput RLE?', c.slice(9,10) == '1', '\nCode 3 is BeginID?', c.slice(10,11) == '1',
-        '\n\nMode:', modes[code[0]], '\n\n\n\n\n'
+        '\n\nMode:', modes[code[0]], code[0] == 5 ? '\nCharacter Encoding:' : code[0] == 31 ? '\nCompressed:' : '', code[0] == 5 ? encodings[code[1]] : code[0] == 31 ? code[1] + 1 : '', code[0] == 31 ? 'times' : '', '\n\n\n\n\n'
     );
 
     return result;
@@ -94,11 +111,12 @@ async function runTest(text = 'Lorem ipsum dolor sit amet, consectetur adipiscin
 }
 
 const tests = async function () {
-    await runTest().catch(()=>{});
-    await runTest('foo'.repeat(1000), 'foo x1000').catch(()=>{});
-    await runTest('ыалалыылаар', 'ыалалыылаар').catch(()=>{});
-    await runTest(String(Math.round(Math.random() * 256000000)), 'random numbers').catch(()=>{});
-    await runTest('asdasdsasdsadsdadsadssssssssssssssssssssыꙮ'.repeat(15), 'absolutely random stuff').catch(()=>{});
+    await runTest();
+    await runTest('foo'.repeat(1000), 'foo x1000');
+    await runTest('ыалалыылаар', 'ыалалыылаар');
+    await runTest(String(Math.round(Math.random() * 256000000)), 'random numbers');
+    await runTest('asdasdsasdsadsdadsadssssssssssssssssssssыꙮ'.repeat(15), 'absolutely random stuff');
+    await runTest('aaaaaaaaaaaaaaa1ыыыыыыыыыыыыыꙮ'.repeat(30), 'should use recursive compression mode');
 }
 
-tests().catch(()=>{})
+tests().then(()=>{});
