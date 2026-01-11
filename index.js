@@ -39,7 +39,8 @@ SOFTWARE.
     if (typeof define === 'function' && define.amd) {
         define(['justc'], factory);                 /*   amd    */
     } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory(require('justc')); /*   node   */
+        const exports = factory(require('justc'));  /*   node   */
+        module.exports = {...exports, default: exports};
     } else {
         root.JSSC = factory(root.JUSTC);            /* browsers */
         Object.freeze(root.JSSC);

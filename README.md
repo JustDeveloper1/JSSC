@@ -1,5 +1,5 @@
 # JSSC — JavaScript String Compressor
-**JSSC (JavaScript String Compressor)** is an open-source, lossless **string compression algorithm** designed specifically for JavaScript.
+**JSSC (JavaScript String Compressor)** is an open-source, **lossless string compression algorithm** designed specifically for JavaScript.
 
 It operates directly on JavaScript strings (UTF-16) and produces compressed data that is also a valid JavaScript string.
 
@@ -20,9 +20,8 @@ JSSC is distributed as a **UMD module** and can be used in browsers, Node.js, De
   - all required information is embedded into the compressed string itself
 - 🧠 **Self-validating compression**
   - every compression mode is verified by decompression before being accepted
-- 🔁 **Recursive optimization mode**
-  - optional multi-pass compression (mode 31)
-- 📜 TypeScript definitions included
+- 🔁 **Recursive compression**
+- 📜 **TypeScript definitions** included
 - 🌐 **UMD build** for browsers and static websites
 
 ## Important Version Compatibility Notice
@@ -82,7 +81,7 @@ await decompress(example);
 
 #### Deno (server-side)
 ```ts
-import JSSC from 'https://jssc.js.org/script.js';
+import JSSC from 'https://jssc.js.org/jssc.min.js';
 
 const example = await JSSC.compress("Hello, world!");
 await JSSC.decompress(example);

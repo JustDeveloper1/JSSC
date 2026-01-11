@@ -22,11 +22,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - run: mv index.js website/script.js && mv test/node/test.js website/test.js && printf "/*\n\n%s\n\n*/\n\n" "$(cat LICENSE)" | cat - "website/script.js" > temp.js && mv temp.js "website/script.js"
+      - run: mv index.min.js website/script.min.txt && mv README.md website/index.md
+      - run: mv index.js website/script.txt && mv test/index.js website/test.js
       - name: Generate docs with Just an Ultimate Site Tool
         uses: js-just/latest@main
         with:
           path: website
+      - run: mv website/script.txt website/script.js && mv website/script.min.txt website/script.min.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
