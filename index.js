@@ -46,8 +46,10 @@ SOFTWARE.
         Object.freeze(root.JSSC);
     }
 }(typeof self !== 'undefined' ? self : this, function (JUSTC) {
+    const name__ = 'JSSC';
+    const prefix = name__+': ';
     if ((String.fromCharCode(65536).charCodeAt(0) === 65536) || !(String.fromCharCode(256).charCodeAt(0) === 256)) {
-        throw new Error('Supported UTF-16 only!')
+        throw new Error(prefix+'Supported UTF-16 only!')
     }
 
     function stringCodes(str) {
@@ -428,7 +430,7 @@ SOFTWARE.
             let output = {};
             for (const [name, func] of Object.entries(_JSSC)) {
                 if (typeof func === 'function' && !name.startsWith('_') && name != 'use') {
-                    output['JSSC'+name] = func;
+                    output[name__+name] = func;
                 }
             }
             Object.freeze(output);
@@ -689,7 +691,7 @@ SOFTWARE.
             const parts = compressedText.split(splitter);
 
             if (parts.length < 2) {
-                throw new Error('Invalid freqMap data: splitter not found');
+                throw new Error(prefix+'Invalid freqMap data: splitter not found');
             }
 
             const headerPart = parts[0];
@@ -823,7 +825,7 @@ SOFTWARE.
      * @since 1.0.0
      */
     async function compress(input, options) {
-        if (typeof input != 'string' && typeof input != 'object' && typeof input != 'number') throw new Error('Invalid input.');
+        if (typeof input != 'string' && typeof input != 'object' && typeof input != 'number') throw new Error(prefix+'Invalid input.');
         const opts = {
             segmentation: true,
             recursivecompression: true,
@@ -832,14 +834,15 @@ SOFTWARE.
 
         /* Read options */
         if (options) {
-            if (typeof options != 'object') throw new Error('Invalid options input.');
+            if (typeof options != 'object') throw new Error(prefix+'Invalid options input.');
             for (const [key, value] of Object.entries(options)) {
-                if (typeof value != 'boolean') throw new Error('Invalid options input.');
+                if (typeof value == 'undefined') continue;
+                if (typeof value != 'boolean') throw new Error(prefix+'Invalid options input.');
                 if (key.toLowerCase() in opts) {
                     opts[key.toLowerCase()] = value;
                     continue;
                 }
-                console.warn(`Unknown option: "${key}".`);
+                console.warn(prefix+`Unknown option: "${key}".`);
             }
         }
 
@@ -850,7 +853,7 @@ SOFTWARE.
         if (typeof str === 'number') {
             isNum = true;
             str = str.toString();
-            if (str.includes('.')) throw new Error('Invalid input.');
+            if (str.includes('.')) throw new Error(prefix+'Invalid input.');
         }
 
         let repeatBefore = false;
@@ -898,7 +901,7 @@ SOFTWARE.
                     code3 = 6;
                 }
             } catch (error) {
-                const msg = new Error('Invalid input.');
+                const msg = new Error(prefix+'Invalid input.');
                 throw new AggregateError([msg, error], msg.message);
             } else
             /* JSON Object (as string) */
@@ -1356,7 +1359,7 @@ SOFTWARE.
         const possibleCharEncoding = strcode2charencoding[id];
         if (possibleCharEncoding) {
             const characterEncodings_ = new _JSSC.use();
-            const characterEncoding = characterEncodings_['JSSC'+possibleCharEncoding]();
+            const characterEncoding = characterEncodings_[name__+possibleCharEncoding]();
             let output = '';
             for (const characters of realstr.split('')) {
                 const characterCode = characters.charCodeAt();
@@ -1413,7 +1416,7 @@ SOFTWARE.
      * @since 1.0.0
      */
     async function decompress(str, stringify = false) {
-        if (typeof str != 'string') throw new Error('Invalid input.');
+        if (typeof str != 'string') throw new Error(prefix+'Invalid input.');
         const strcodes = cryptCharCode(str.charCodeAt(0) - 32, true);
         const strcode = strcodes.code;
         
@@ -1530,7 +1533,7 @@ SOFTWARE.
                 const decoded = characterEncodings(strcodes.code2, realstr);
                 if (decoded) {
                     return await processOutput(decoded);
-                } else throw new Error('Invalid compressed string');
+                } else throw new Error(prefix+'Invalid compressed string');
             case 7:
                 const splitter = freqMapSplitters[binToDec(decToBin(strcodes.code2).slice(1))];
                 output = freqMap.decompress(realstr, splitter);
@@ -1597,7 +1600,7 @@ SOFTWARE.
                     const meta = cryptCharCode(first, true);
 
                     if (meta.code === 31) {
-                        throw new Error('Attempt to nested recursive compression');
+                        throw new Error(prefix+'Attempt to nested recursive compression');
                     }
 
                     out = await decompress(out, true);
@@ -1606,7 +1609,7 @@ SOFTWARE.
                 return out;
             }
             default:
-                throw new Error('Invalid compressed string');
+                throw new Error(prefix+'Invalid compressed string');
         }
     }
 
@@ -1614,7 +1617,7 @@ SOFTWARE.
         compress,
         decompress,
         get [Symbol.toStringTag]() {
-            return 'JSSC';
+            return name__;
         }
     };
 
