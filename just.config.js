@@ -1,6 +1,6 @@
 module.exports = {
     mode: 'generator',
-    domain: 'justdeveloper1.github.io',
+    domain: 'jssc.js.org',
     docs_config: {
         title: 'JavaScript String Compressor'
     }

@@ -1,11 +1,8 @@
 {
   "name": "strc",
-  "version": "1.1.0",
+  "version": "2.0.0-test",
   "description": "JavaScript String Compressor",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JustDeveloper1/JSSC.git"
@@ -16,13 +13,37 @@
     "url": "https://github.com/JustDeveloper1/JSSC/issues"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=22.0.0"
   },
-  "homepage": "https://github.com/JustDeveloper1/JSSC#readme",
+  "homepage": "https://jssc.js.org/",
   "files": [
     "index.js",
     "index.d.ts",
     "README.md",
-    "LICENSE"
-  ]
+    "LICENSE",
+    "index.min.js",
+    "test/index.js"
+  ],
+  "dependencies": {
+    "justc": "^0.1.0"
+  },
+  "unpkg": "./index.min.js",
+  "keywords": [
+    "compressor", "compress", "compression",
+    "decompress", "decompressor", "decompression",
+    "string", "text", "data",
+    "javascript", "typescript", "js", "ts", "deno", "jsx", "tsx",
+    "jssc", "strc",
+    "lossless",
+    "high", "ratio", "ratios",
+    "multilingual", "character", "encoding", "encodings",
+    "json", "object",
+    "english", "spanish", "portuguese", "french", "german", "russian", "ukrainian", "belarusian", "kazakh", "hindi", "bengali", "japanese", "hiragana", "katakana", "telugu", "marathi",
+    "unicode", "ascii",
+    "umd", "module", "open-source", "open", "source", "node", "amd", "browsers", "browser", "client-side", "client", "side", "server-side", "server", "frontend", "backend", "fullstack", "rle",
+    "2025", "2026"
+  ],
+  "scripts": {
+    "test": "node test"
+  }
 }

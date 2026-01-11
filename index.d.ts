@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2025 JustDeveloper <https://justdeveloper.is-a.dev/>
+Copyright (c) 2025-2026 JustDeveloper <https://justdeveloper.is-a.dev/>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,29 +36,80 @@ SOFTWARE.
 */
 
 /**
+ * JavaScript String Compressor - compress options
+ * @license MIT
+ * @copyright (c) 2025-2026 JustDeveloper <<https://justdeveloper.is-a.dev>>
+ * @since 2.0.0
+ */
+export interface compressOptions {
+    JUSTC?: boolean,
+    recursiveCompression?: boolean,
+    segmentation?: boolean
+}
+
+/**
  * JavaScript String Compressor - compress function
  * @param str - Input string to compress
  * @returns Compressed string
  * @example
- * compress('Hello, World!');
+ * await compress('Hello, World!');
  * @since 1.0.0
  */
-export function compress(str: string): string;
+export function compress(str: string, options?: compressOptions): Promise<string>;
+/**
+ * JavaScript String Compressor - compress function
+ * @param obj - Input object to compress
+ * > **Note: it will `JSON.stringify()` your object so it may lose some data if your object has getters/setters/non-enumerables/etc.!**
+ * @returns Compressed string
+ * @example
+ * await compress({a: "b"});
+ * @since 2.0.0
+ */
+export function compress(obj: object, options?: compressOptions): Promise<string>;
+/**
+ * JavaScript String Compressor - compress function
+ * @param int - Input integer to compress
+ * @returns Compressed string
+ * @example
+ * await compress(10);
+ * @since 2.0.0
+ */
+export function compress(int: number, options?: compressOptions): Promise<string>;
 
 /**
  * JavaScript String Compressor - decompress function
  * @param str - Compressed string to decompress
  * @returns Decompressed string
  * @example
- * decompress(compressedString);
+ * await decompress(compressedString);
  * @since 1.0.0
  */
-export function decompress(str: string): string;
+export function decompress(str: string): Promise<string>;
+/**
+ * JavaScript String Compressor - decompress function
+ * @param str - Compressed object to decompress
+ * @param stringify - Always return string? (`JSON.stringify()` object outputs)
+ * @returns Decompressed string
+ * @example
+ * await decompress(compressedString);
+ * @since 2.0.0
+ */
+export function decompress(str: string, stringify?: boolean): Promise<object|string>;
+/**
+ * JavaScript String Compressor - decompress function
+ * @param str - Compressed object to decompress
+ * @param stringify - Always return string? (`.toString()` integer outputs)
+ * @returns Decompressed string
+ * @example
+ * await decompress(compressedString);
+ * @since 2.0.0
+ */
+export function decompress(str: string, stringify?: boolean): Promise<number|string>;
 
 /**
  * JavaScript String Compressor
  * @license MIT
- * @copyright (c) 2025 JustDeveloper <<https://justdeveloper.is-a.dev>>
+ * @copyright (c) 2025-2026 JustDeveloper <<https://justdeveloper.is-a.dev>>
  * @since 1.0.0
  */
 declare const JSSC: {
