@@ -28,7 +28,7 @@ jobs:
         uses: js-just/latest@main
         with:
           path: website
-      - run: mv website/script.txt website/script.js && mv website/script.min.txt website/script.min.js
+      - run: mv website/script.txt website/jssc.js && mv website/script.min.txt website/jssc.min.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
