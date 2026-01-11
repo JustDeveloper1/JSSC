@@ -1,2 +1,2 @@
-npm init 
+npm i justc 
 node test
