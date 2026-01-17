@@ -1,0 +1,37 @@
+name: Push to website
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+    - "index.js"
+    - "index.min.js"
+    - "index.d.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - run: bash website/copy.sh
+      - uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: "scripts"
+          destination-github-username: JustDeveloper1
+          destination-repository-name: "JSSC.js.org"
+          user-email: "justdeveloper@juststudio.is-a.dev"
+          target-branch: "gh-pages"
+          target-directory: "jssc"
