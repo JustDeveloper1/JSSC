@@ -32,6 +32,5 @@ jobs:
           source-directory: "scripts"
           destination-github-username: JustDeveloper1
           destination-repository-name: "JSSC.js.org"
-          user-email: "justdeveloper@juststudio.is-a.dev"
           target-branch: "gh-pages"
           target-directory: "jssc"
