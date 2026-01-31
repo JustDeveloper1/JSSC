@@ -25,13 +25,15 @@ SOFTWARE.
 */
 
 /*
-        _______________
-    __ / / __/ __/ ___/
-   / // /\ \_\ \/ /__  
-   \___/___/___/\___/  
-                       
-   JavaScript String Compressor
-   https://jssc.js.org/
+    __         _______________  __
+    \ \    __ / / __/ __/ ___/ / /
+     > >  / // /\ \_\ \/ /__  < < 
+    /_/   \___/___/___/\___/   \_\
+
+     JavaScript String Compressor 
+         https://jssc.js.org/     
+
+    npm i strc
 
 */
 
@@ -477,21 +479,21 @@ SOFTWARE.
             return binToDec(sixteenBits);
         }
     }
-    /* Code 1 usage table */
-    /* ------------------ */
-    /* 00: No compression */
-    /* 01: CharCode.len=2 */
-    /* 02: ASCII in UTF16 */ /* Yeah ik thats not actually matches ASCII */
-    /* 03: Integers (Any) */
-    /* 04: Build Alphabet */
-    /* 05: Char Encodings */
-    /* 06: Integers (>15) */
-    /* 07: Frequency  Map */
-    /* 08: URL to  binary */
-    /* 09: Segmt compress */
-    /* 10: Repeating strs */
-    /* 11 - 30:  Reserved */
-    /* 31: Rcrsv compress */
+    /*          Code 1 usage table          */
+    /* ------------------------------------ */
+    /* 00: No Compression                   */
+    /* 01: Two-Digit CharCode Concatenation */
+    /* 02: Two-Byte CharCode Concatenation  */
+    /* 03: Decimal Integer Packing          */
+    /* 04: Alphabet Encoding                */
+    /* 05: Character Encoding               */
+    /* 06: Inline Integer Encoding          */
+    /* 07: Frequency Map                    */
+    /* 08: URL                              */
+    /* 09: Segmentation                     */
+    /* 10: String Repetition                */
+    /* 11 - 30: Reserved                    */
+    /* 31: Recursive Compression            */
 
     const SEQUENCE_MARKER = '\uDBFF'; /* Private Use Area */
 
@@ -971,7 +973,7 @@ SOFTWARE.
         const candidates = [];
 
         if (/^\d+$/.test(str)) {
-            /* Integers ( < 15 ) */
+            /* Inline Integer Encoding */
             candidates.push(async () => {
                 const out = await (async () => {
                     const num = parseInt(str);
@@ -986,7 +988,7 @@ SOFTWARE.
                 if (!(await validate(out))) return null;
                 return out;
             });
-            /* Integers (any) */
+            /* Decimal Integer Packing */
             candidates.push(async () => {
                 const convertNums = {
                     'A': 10,
@@ -1026,6 +1028,7 @@ SOFTWARE.
             });
         }
 
+        /* Two-Digit CharCode Concatenation */
         candidates.push(async () => {
             const strdata = stringCodes(str);
             if (!(strdata.max === 2 && strdata.min === 2)) return null;
@@ -1068,7 +1071,7 @@ SOFTWARE.
             return res;
         });
 
-        /* ASCII in UTF-16 */
+        /* Two-Byte CharCode Concatenation */
         candidates.push(async () => {
             const strdata = stringCodes(str);
             if (strdata.maxCharCode >= 256) return null;
@@ -1086,7 +1089,7 @@ SOFTWARE.
             return res;
         });
 
-        /* Character encodings */
+        /* Character Encoding */
         candidates.push(async () => {
             const characterEncodings = new _JSSC.use();
             const stringArray = str.split('');
@@ -1136,7 +1139,7 @@ SOFTWARE.
             return null;
         });
 
-        /* Build alphabet */
+        /* Alphabet Encoding */
         candidates.push(async () => {
             const uniq = [...new Set(str.split('').map(c => c.charCodeAt(0)))];
             if (uniq.length >= 16) return null;
@@ -1165,7 +1168,7 @@ SOFTWARE.
             return res;
         });
 
-        /* Frequency map */
+        /* Frequency Map */
         candidates.push(async () => {
             for (const splitter of freqMapSplitters) {
                 const test = freqMap.test(str, splitter);
@@ -1297,7 +1300,7 @@ SOFTWARE.
             return res;
         });
 
-        /* Repeating string */
+        /* String Repetition */
         const rcheck = str.match(/^(.{1,7}?)(?:\1)+$/);
         if (rcheck) candidates.push(async () => {
             const main = rcheck[1];
