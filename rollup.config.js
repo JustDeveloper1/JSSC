@@ -18,5 +18,8 @@ export default {
             format: 'umd',
             name: 'JSSC'
         }
+    ],
+    external: [
+        'justc'
     ]
 }

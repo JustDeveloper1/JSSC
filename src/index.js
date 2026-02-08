@@ -1,4 +1,4 @@
-const JUSTC = require('justc');
+import JUSTC from 'justc';
 
 const name__ = 'JSSC';
 const prefix = name__+': ';
