@@ -1,6 +1,6 @@
 {
   "name": "strc",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "JavaScript String Compressor - lossless string compression algorithm",
   "main": "index.js",
   "repository": {
@@ -18,14 +18,12 @@
   "homepage": "https://jssc.js.org/",
   "files": [
     "index.js",
-    "src/index.d.ts",
+    "src",
     "README.md",
     "LICENSE",
     "index.min.js",
     "test/index.js",
-    "dist/jssc.js",
-    "dist/jssc.mjs",
-    "dist/jssc.cjs"
+    "dist"
   ],
   "dependencies": {
     "justc": "^0.1.0"
