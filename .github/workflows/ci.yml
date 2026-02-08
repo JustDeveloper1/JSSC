@@ -27,5 +27,5 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: false
           ACTIONS_RUNNER_DEBUG: false
-      - name: Run JavaScript
+      - name: Run tests
         run: bash test/run.sh

@@ -24,4 +24,20 @@ jobs:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
       - run: npm install
-      - run: npm publish --access public
+
+      - run: mkdir dist
+
+      - name: Build
+        run: npx rollup -c
+
+      - name: Minify
+        run: npx uglifyjs dist/jssc.js -c -m "reserved=['compress','decompress','JSSC','jssc']" -o index.min.js
+
+      - run: cp dist/jssc.js index.js
+      - run: bash src/prefix.sh
+
+      - name: Run tests
+        run: npm test
+
+      - name: Publish
+        run: npm publish --access public
