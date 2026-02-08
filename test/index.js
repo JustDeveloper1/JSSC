@@ -1,4 +1,4 @@
-const JSSC = require('../src/index.js');
+const JSSC = require('../index.js');
 const JSSCmin = require('../index.min.js');
 
 function stringChunks(str, num) {
