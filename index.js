@@ -1420,7 +1420,9 @@ SOFTWARE.
      */
     async function decompress(str, stringify = false) {
         if (typeof str != 'string') throw new Error(prefix+'Invalid input.');
-        const strcodes = cryptCharCode(str.charCodeAt(0) - 32, true);
+        const strcodes = cryptCharCode((
+            (str.charCodeAt(0) - 32 + 65535) % 65535
+        ), true);
         const strcode = strcodes.code;
         
         function repeatChars(txt) {
