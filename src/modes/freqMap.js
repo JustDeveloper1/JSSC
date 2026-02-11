@@ -1,4 +1,4 @@
-import { prefix } from "./meta";
+import { prefix } from "../meta";
 
 export const freqMap = {
     ESCAPE_BYTE: 0xFF,
