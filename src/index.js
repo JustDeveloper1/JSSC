@@ -555,16 +555,26 @@ function decompressSequences(str) {
 
 import { freqMap, freqMapSplitters } from './freqMap';
 
+function splitGraphemes(str) {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+        return Array.from(segmenter.segment(str), s => s.segment);
+    }
+    return Array.from(str);
+}
+
 function segments(str) {
     if (typeof str !== 'string' || str.length === 0) return [];
+
+    str = splitGraphemes(str);
 
     const THRESHOLD = 128;
     const segs = [];
     let currentSeg = str[0];
 
     for (let i = 1; i < str.length; i++) {
-        const prevCode = str.charCodeAt(i - 1);
-        const currCode = str.charCodeAt(i);
+        const prevCode = str[i - 1].codePointAt(0);
+        const currCode = str[i].codePointAt(0);
 
         if (Math.abs(currCode - prevCode) > THRESHOLD) {
             segs.push(currentSeg);
@@ -1064,41 +1074,43 @@ export async function compress(input, options) {
     });
 
     /* Segmentation */
-    if (opts.segmentation) candidates.push(async () => {
-        const segs = segments(str);
+    if (opts.segmentation) candidates.push(
+        async () => {
+            const segs = segments(str);
 
-        if (segs.length < 2) return null;
+            if (segs.length < 2) return null;
 
-        let out = segs.length - 2 < 15 ? '' : String.fromCharCode(segs.length - 2);
+            let out = segs.length - 2 < 15 ? '' : String.fromCharCode(segs.length - 2);
 
-        for (const seg of segs) {
-            const segOpts = {
-                ...opts,
-                segmentation: false
+            for (const seg of segs) {
+                const segOpts = {
+                    ...opts,
+                    segmentation: false
+                }
+                const compressed = await compress(seg, segOpts);
+
+                out += String.fromCharCode(seg.length);
+                out += compressed;
             }
-            const compressed = await compress(seg, segOpts);
 
-            out += String.fromCharCode(seg.length);
-            out += compressed;
+            const res =
+                charCode(
+                    cryptCharCode(
+                        9,
+                        false,
+                        repeatBefore,
+                        opts.justc,
+                        beginId,
+                        Math.min(segs.length - 2, 15),
+                        opts.recursivecompression,
+                        code3
+                    )
+                ) + out;
+
+            if (!(await validate(res))) return null;
+            return res;
         }
-
-        const res =
-            charCode(
-                cryptCharCode(
-                    9,
-                    false,
-                    repeatBefore,
-                    opts.justc,
-                    beginId,
-                    Math.min(segs.length - 2, 15),
-                    opts.recursivecompression,
-                    code3
-                )
-            ) + out;
-
-        if (!(await validate(res))) return null;
-        return res;
-    });
+    );
 
     /* String Repetition */
     const rcheck = str.match(/^(.{1,7}?)(?:\1)+$/);
