@@ -15,7 +15,7 @@ import {
     binToDec
 } from './utils';
 import { freqMap, freqMapSplitters } from './modes/freqMap';
-import { segments } from './modes/segmentation';
+import { segments, splitGraphemes } from './modes/segmentation';
 import { _JSSC } from './encodings';
 import { compressSequences, decompressSequences } from './sequences';
 
@@ -67,7 +67,8 @@ function cryptCharCode(
 /* 08: URL                              */
 /* 09: Segmentation                     */
 /* 10: String Repetition                */
-/* 11 - 30: Reserved                    */
+/* 11: Emoji Packing                    */
+/* 12 - 30: Reserved                    */
 /* 31: Recursive Compression            */
 
 async function tryRecursive(base, opts) {
@@ -622,6 +623,45 @@ export async function compress(input, options) {
         return res;
     });
 
+    /* Emoji Packing */
+    candidates.push(async () => {
+        const graphemes = splitGraphemes(str);
+        function isEmojiCluster(cluster) {
+            const code = cluster.codePointAt(0);
+            return (code >= 0x1F300 && code <= 0x1FAFF);
+        }
+        
+        if (!graphemes.every(isEmojiCluster)) return null;
+
+        const base = 0x1F300;
+        let bits = '';
+
+        for (const g of graphemes) {
+            const cps = Array.from(g).map(c => c.codePointAt(0));
+            bits += decToBin(cps.length, 3);
+            for (const cp of cps) {
+                bits += decToBin(cp - base, 11);
+            }
+        }
+
+        let out = '';
+        for (const chunk of stringChunks(bits, 16)) {
+            out += String.fromCharCode(binToDec(chunk.padEnd(16,'0')));
+        }
+
+        const [outPostprocessed, repeatAfter, seq] = processOutput(out);
+
+        function hchar(ra = false, sq = false) {
+            return cryptCharCode(11, false, repeatBefore, ra, beginId, 0, sq, code3);
+        }
+        const resA = charCode(hchar(repeatAfter, seq)) + outPostprocessed;
+        const resB = charCode(hchar()) + out;
+
+        if (await validate(resA)) return resA;
+        if (await validate(resB)) return resB;
+        return null;
+    });
+
     /* run all */
     const results = (await Promise.all(candidates.map(fn => safeTry(fn))))
         .filter(r => typeof r === 'string' && r.length <= String(str).length);
@@ -889,6 +929,42 @@ export async function decompress(str, stringify = false) {
             const repeatCount = sliceChar ? realstr.charCodeAt(0) + 15 : strcodes.code2;
             if (sliceChar) realstr = realstr.slice(1);
             return await processOutput(realstr.repeat(repeatCount));
+        case 11: {
+            const base = 0x1F300;
+
+            let bits = '';
+
+            for (let i = 0; i < realstr.length; i++) {
+                const code = realstr.charCodeAt(i);
+                bits += code.toString(2).padStart(16, '0');
+            }
+
+            let pos = 0;
+            let result = '';
+            
+            while (pos + 3 <= bits.length) {
+                const length = parseInt(bits.slice(pos, pos + 3), 2);
+                pos += 3;
+
+                if (length === 0) break;
+
+                if (pos + (length * 11) > bits.length) break;
+
+                let cluster = '';
+
+                for (let i = 0; i < length; i++) {
+                    const delta = parseInt(bits.slice(pos, pos + 11), 2);
+                    pos += 11;
+
+                    const cp = base + delta;
+                    cluster += String.fromCodePoint(cp);
+                }
+
+                result += cluster;
+            }
+
+            return result;
+        }
         case 31: {
             let out = realstr;
             const depth = strcodes.code2;

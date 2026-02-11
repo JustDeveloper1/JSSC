@@ -1,4 +1,4 @@
-function splitGraphemes(str) {
+export function splitGraphemes(str) {
     if (typeof Intl !== 'undefined' && Intl.Segmenter) {
         const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
         return Array.from(segmenter.segment(str), s => s.segment);
