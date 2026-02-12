@@ -18,6 +18,8 @@ import { freqMap, freqMapSplitters } from './modes/freqMap';
 import { segments, splitGraphemes } from './modes/segmentation';
 import { _JSSC } from './encodings';
 import { compressSequences, decompressSequences } from './sequences';
+import { convertBase } from './third-party/convertBase';
+import { compressB64, decompressB64 } from './modes/base64';
 
 function cryptCharCode(
     code, get = false,
@@ -54,22 +56,24 @@ function cryptCharCode(
         return binToDec(sixteenBits);
     }
 }
-/*          Code 1 usage table          */
-/* ------------------------------------ */
-/* 00: No Compression                   */
-/* 01: Two-Digit CharCode Concatenation */
-/* 02: Two-Byte CharCode Concatenation  */
-/* 03: Decimal Integer Packing          */
-/* 04: Alphabet Encoding                */
-/* 05: Character Encoding               */
-/* 06: Inline Integer Encoding          */
-/* 07: Frequency Map                    */
-/* 08: URL                              */
-/* 09: Segmentation                     */
-/* 10: String Repetition                */
-/* 11: Emoji Packing                    */
-/* 12 - 30: Reserved                    */
-/* 31: Recursive Compression            */
+/*          Code 1 usage table          */ /* Mode ID */
+/* ------------------------------------ */ /* ------- */
+/* 00: No Compression                   */ /* 00      */
+/* 01: Two-Digit CharCode Concatenation */ /* 01      */
+/* 02: Two-Byte CharCode Concatenation  */ /* 02      */
+/* 03: Decimal Integer Packing          */ /* 03      */
+/* 04: Alphabet Encoding                */ /* 04      */
+/* 05: Character Encoding               */ /* 05      */
+/* 06: Inline Integer Encoding          */ /* 06      */
+/* 07: Frequency Map                    */ /* 07      */
+/* 08: URL                              */ /* 08      */
+/* 09: Segmentation                     */ /* 09      */
+/* 10: String Repetition                */ /* 10      */
+/* 11: Emoji Packing                    */ /* 12      */
+/* 12: Base-64 Integer Encoding         */ /* 13      */
+/* 13: Base-64 Packing                  */ /* 14      */
+/* 14 - 30: Reserved                    */ /* --      */
+/* 31: Recursive Compression            */ /* 11      */
 
 async function tryRecursive(base, opts) {
     if (!opts.recursivecompression) return base;
@@ -113,7 +117,7 @@ async function tryRecursive(base, opts) {
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
- * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean}} [options]
+ * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean}} [options]
  * @returns {Promise<string>} Compressed string
  * @example await compress('Hello, World!');
  * @since 1.0.0
@@ -124,6 +128,7 @@ export async function compress(input, options) {
         segmentation: true,
         recursivecompression: true,
         justc: JUSTC ? true : false,
+        base64integerencoding: true
     };
 
     /* Read options */
@@ -201,7 +206,7 @@ export async function compress(input, options) {
         /* JSON Object (as string) */
         try {
             const obj = JSON.parse(str);
-            if (!Array.isArray(obj)) {
+            if (!Array.isArray(obj) && typeof obj == 'object') {
             
             const JUSTCobj = opts.justc ? await toJUSTC(obj) : false;
 
@@ -212,7 +217,7 @@ export async function compress(input, options) {
                 str = str.slice(1,-1);
                 code3 = 5;
             }
-        } else {
+        } else if (typeof obj == 'object') {
         /* JSON Array (as string) */
         str = str.slice(1,-1);
         code3 = 3;
@@ -315,6 +320,19 @@ export async function compress(input, options) {
             }
             [output, RLE, sequences] = processOutput(output);
             output = charCode(cryptCharCode(3, false, isNum, RLE, -1, 0, sequences, code3)) + output;
+            if (!(await validate(output))) return null;
+            return output;
+        });
+        /* Base-64 Integer Encoding */
+        candidates.push(async () => {
+            let [output, RLE, seq] = processOutput(convertBase(str, 10, 64));
+            output = await compress(output, {
+                JUSTC: false,
+                segmentation: false,
+                recursiveCompression: false,
+                base64IntegerEncoding: false
+            });
+            output = charCode(cryptCharCode(12, false, isNum, RLE, -1, 0, seq, code3)) + output;
             if (!(await validate(output))) return null;
             return output;
         });
@@ -662,6 +680,22 @@ export async function compress(input, options) {
         return null;
     });
 
+    /* Base-64 Packing */
+    if (/^[0-9a-zA-Z+/]+$/.test(str)) candidates.push(async () => {
+        const { data, length } = compressB64(str);
+
+        let len = '';
+        if (length > 15) {
+            const lng = length - 16
+            if (lng > 0xFFFF) return null;
+            len = String.fromCharCode(lng);
+        }
+
+        const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, Math.min(length, 16), false, code3)) + len + data;
+        if (await validate(res)) return res;
+        return null;
+    });
+
     /* run all */
     const results = (await Promise.all(candidates.map(fn => safeTry(fn))))
         .filter(r => typeof r === 'string' && r.length <= String(str).length);
@@ -764,12 +798,12 @@ export async function decompress(str, stringify = false) {
     
     /* sequences */
     let realstr = str.slice(1);
-    if (strcodes.sequences && strcode != 8 && strcode != 9) {
+    if (strcodes.sequences && ![8,9,13].includes(strcode)) {
         realstr = decompressSequences(realstr);
     }
     
     /* RLE */
-    if (strcodes.repeatAfter && strcode != 9) {
+    if (strcodes.repeatAfter && ![9,13].includes(strcode)) {
         realstr = repeatChars(realstr);
     }
     
@@ -787,14 +821,15 @@ export async function decompress(str, stringify = false) {
     
     async function processOutput(out) {
         let output = out;
-        if (strcodes.repeatBefore && strcode != 3) {
+
+        if (strcodes.repeatBefore && strcode != 3 && strcode != 12) {
             output = repeatChars(await begin(out));
         } else output = await begin(out);
 
-        if ((strcodes.repeatBefore && strcode == 3) || strcode == 30) output = parseInt(output); else {     /*            Integer            */
-        if (strcodes.code3 == 3 || strcodes.code3 == 4) output = '[' + output + ']';                        /*          JSON  Array          */
-        else if (strcodes.code3 == 5) output = '{' + output + '}';                                          /*    JSON Object (as string)    */
-        if (strcodes.code3 == 2 || strcodes.code3 == 4 || strcodes.code3 == 6) output = JSON.parse(output);} /* JSON Object/Array (as object) */
+        if ((strcodes.repeatBefore && (strcode == 3 || strcode == 12)) || strcode == 30) output = parseInt(output); else { /*            Integer            */
+        if (strcodes.code3 == 3 || strcodes.code3 == 4) output = '[' + output + ']';                                       /*          JSON  Array          */
+        else if (strcodes.code3 == 5) output = '{' + output + '}';                                                         /*    JSON Object (as string)    */
+        if (strcodes.code3 == 2 || strcodes.code3 == 4 || strcodes.code3 == 6) output = JSON.parse(output);}               /* JSON Object/Array (as object) */
 
         if (stringify) {
             if (typeof output == 'object') output = JSON.stringify(output);
@@ -965,6 +1000,15 @@ export async function decompress(str, stringify = false) {
 
             return result;
         }
+        case 12:
+            return await decompress(
+                await processOutput(convertBase(realstr, 64, 10))
+            );
+        case 13:
+            let len = strcodes.code2;
+            let slice = len == 16;
+            if (slice) len = realstr.slice(0,1).charCodeAt(0) + 16;
+            return await processOutput(decompressB64(slice ? realstr.slice(1) : realstr, len));
         case 31: {
             let out = realstr;
             const depth = strcodes.code2;

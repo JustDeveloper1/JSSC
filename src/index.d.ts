@@ -44,7 +44,8 @@ SOFTWARE.
 export interface compressOptions {
     JUSTC?: boolean,
     recursiveCompression?: boolean,
-    segmentation?: boolean
+    segmentation?: boolean,
+    base64IntegerEncoding?: boolean
 }
 
 /**
