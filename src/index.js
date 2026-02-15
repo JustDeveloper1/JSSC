@@ -1,5 +1,5 @@
 import JUSTC from 'justc';
-import { name__, prefix } from './meta';
+import { name__, prefix } from '../lib/meta.js';
 if ((String.fromCharCode(65536).charCodeAt(0) === 65536) || !(String.fromCharCode(256).charCodeAt(0) === 256)) {
     throw new Error(prefix+'Supported UTF-16 only!')
 }
@@ -13,13 +13,13 @@ import {
     chunkArray,
     decToBin,
     binToDec
-} from './utils';
-import { freqMap, freqMapSplitters } from './modes/freqMap';
-import { segments, splitGraphemes } from './modes/segmentation';
-import { _JSSC } from './encodings';
-import { compressSequences, decompressSequences } from './sequences';
-import { convertBase } from './third-party/convertBase';
-import { compressB64, decompressB64 } from './modes/base64';
+} from './utils.js';
+import { freqMap, freqMapSplitters } from './modes/freqMap.js';
+import { segments, splitGraphemes } from './modes/segmentation.js';
+import { _JSSC } from './encodings.js';
+import { compressSequences, decompressSequences } from './sequences.js';
+import { convertBase } from '../lib/third-party/convertBase.js';
+import { compressB64, decompressB64 } from './modes/base64.js';
 
 function cryptCharCode(
     code, get = false,

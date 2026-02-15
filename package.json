@@ -1,6 +1,6 @@
 {
   "name": "strc",
-  "version": "2.0.5",
+  "version": "2.1.0-test",
   "description": "JavaScript String Compressor - lossless string compression algorithm",
   "main": "index.js",
   "repository": {
@@ -23,10 +23,16 @@
     "LICENSE",
     "index.min.js",
     "test/index.js",
-    "dist"
+    "dist",
+    "bin",
+    "lib"
   ],
   "dependencies": {
-    "justc": "^0.1.0"
+    "crc-32": "^1.2.2",
+    "justc": "^0.1.0",
+    "semver": "^7.7.4",
+    "uint8arrays": "^5.1.0",
+    "utf8": "^3.0.0"
   },
   "keywords": [
     "compressor",
@@ -101,6 +107,7 @@
     "test": "node test"
   },
   "devDependencies": {
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "rollup": "^4.57.1",
     "uglify-js": "^3.19.3"
@@ -108,5 +115,10 @@
   "module": "dist/jssc.mjs",
   "browser": "dist/jssc.js",
   "types": "src/index.d.ts",
-  "unpkg": "./index.min.js"
+  "unpkg": "./index.min.js",
+  "bin": {
+    "jssc": "./bin/index.js",
+    "strc": "./bin/index.js"
+  },
+  "type": "module"
 }

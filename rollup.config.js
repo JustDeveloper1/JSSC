@@ -1,8 +1,12 @@
-import resolve from '@rollup/plugin-node-resolve'
+import resolve from '@rollup/plugin-node-resolve';
+import json from '@rollup/plugin-json';
 
 export default {
     input: 'src/index.js',
-    plugins: [resolve()],
+    plugins: [
+        resolve(),
+        json()
+    ],
     output: [
         {
             file: 'dist/jssc.mjs',
