@@ -104,7 +104,8 @@
     "justc"
   ],
   "scripts": {
-    "test": "node test"
+    "postinstall": "node ./bin/windows/install.js",
+    "preuninstall": "node ./bin/windows/uninstall.js"
   },
   "devDependencies": {
     "@rollup/plugin-json": "^6.1.0",

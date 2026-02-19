@@ -9,10 +9,13 @@ import JUSTC from "justc";
 import { concat } from 'uint8arrays/concat';
 import crc32 from 'crc-32';
 import { convertBase } from "../lib/third-party/convertBase.js";
+import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const args = process.argv.slice(2);
 
-console.log(process.argv[1]);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mode = -1;
 let file = -1;
@@ -42,7 +45,9 @@ function help() {
         '-o <output.jssc>\t  --output     <output.jssc>\t:\tSet output file path.\n' +
         // '-p              \t  --print                   \t:\tPrint output file.\n' +
         // '-s              \t  --string                  \t:\tSet input type to string.\n' +
-        '-v              \t  --version                 \t:\tPrint current JSSC version.'
+        '-v              \t  --version                 \t:\tPrint current JSSC version.\n' +
+        '-wi             \t  --windows-install         \t:\tInstall JSSC Windows integration.\n' +
+        '-wu             \t  --windows-uninstall       \t:\tUninstall JSSC Windows integration.'
     )
 }
 for (const arg of args) {
@@ -95,6 +100,14 @@ for (const arg of args) {
         }
         case '-p': case '--print': {
             print = true;
+            break;
+        }
+        case '-wi': case '--windows-install': {
+            execSync('node '+path.resolve(__dirname, "./windows/install.js"));
+            break;
+        }
+        case '-wu': case '--windows-uninstall': {
+            execSync('node '+path.resolve(__dirname, "./windows/uninstall.js"));
             break;
         }
         default:
@@ -221,19 +234,19 @@ async function decompressEncoded(compressed) {
             files[await compress(file, config)] = await compress(fs.readFileSync(file, { encoding: 'utf8' }), config);
         }
 
-        const output = [
+        const out = [
             semver.major,
             semver.minor,
             isDir == null ? '' : isDir ? 1 : 0,
             files
         ]
-        const checksum = crc32.str(JSON.stringify(output));
+        const checksum = crc32.str(JSON.stringify(out));
 
         const result = concat([fileprefix,
             await compressEncoded(
                 new TextEncoder().encode(JSON.stringify(
                     [
-                        ...output,
+                        ...out,
                         convertBase(checksum.toString(10), 10, 64)
                     ]
                 ).slice(1,-1))
