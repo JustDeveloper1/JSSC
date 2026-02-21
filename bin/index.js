@@ -16,6 +16,7 @@ const args = process.argv.slice(2);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const currentdir = process.cwd();
 
 let mode = -1;
 let file = -1;
@@ -166,7 +167,9 @@ const defaultConfig = {
     JUSTC: true,
     recursiveCompression: true,
     segmentation: true,
-    base64IntegerEncoding: true
+    base64IntegerEncoding: true,
+    
+    debug: false
 };
 
 function makeSemVer(major, minor) {
@@ -181,6 +184,22 @@ async function compressEncoded(data) {
 async function decompressEncoded(compressed) {
     const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
     return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+const codes = {
+    0: {isDir: null,  isFile: false},
+    1: {isDir: false, isFile: false},
+    2: {isDir: true,  isFile: false},
+    3: {isDir: null,  isFile: true },
+    4: {isDir: false, isFile: true },
+    5: {isDir: true,  isFile: true },
+}
+const codesReverse = {};
+for (const [key, value] of Object.entries(codes)) {
+    codesReverse[JSON.stringify(value)] = parseInt(key);
+}
+function encodeCode(isDir, isFile) {
+    return codesReverse[JSON.stringify({isDir, isFile})];
 }
 
 (async (inp, out, cfg) => {
@@ -208,7 +227,7 @@ async function decompressEncoded(compressed) {
 
     else if (output[0] == '' && isFile) {
         addFormat = true;
-        if (isDir) output = [getRoot(inp)];
+        if (isDir) output = [path.join(getRoot(out), path.parse(inp).name)];
         else if (path.extname(inp).length > 0) output = [inp.slice(0, -(path.extname(inp).length))];
         else output = [inp];
     }
@@ -231,25 +250,36 @@ async function decompressEncoded(compressed) {
     if (mode == 0) {
         const files = {};
         for (const file of input) {
-            files[await compress(file, config)] = await compress(fs.readFileSync(file, { encoding: 'utf8' }), config);
+            files[
+                await compress(path.relative(currentdir, file), config)
+            ] = await compress(
+                fs.readFileSync(file, { encoding: 'utf8' }), 
+                config
+            );
+        }
+
+        let extn = '';
+        if (isFile) {
+            const extname = path.extname(input[0]);
+            if (path.parse(input[0]).name != extname) extn = extname;
         }
 
         const out = [
             semver.major,
             semver.minor,
-            isDir == null ? '' : isDir ? 1 : 0,
-            files
-        ]
+            encodeCode(isDir, isFile),
+            files,
+            await compress(extn)
+        ];
         const checksum = crc32.str(JSON.stringify(out));
 
+        const outputArr = [
+            ...out,
+            convertBase(checksum.toString(10), 10, 64)
+        ];
         const result = concat([fileprefix,
             await compressEncoded(
-                new TextEncoder().encode(JSON.stringify(
-                    [
-                        ...out,
-                        convertBase(checksum.toString(10), 10, 64)
-                    ]
-                ).slice(1,-1))
+                new TextEncoder().encode(JSON.stringify(outputArr).slice(1,-1))
             )
         ]);
         fs.writeFileSync(output[0] + (
@@ -257,7 +287,7 @@ async function decompressEncoded(compressed) {
         ), result);
         process.exit(0);
     } else {
-        const raw = fs.readFileSync(input[0]);
+        const raw = isFile ? fs.readFileSync(input[0]) : input[0];
         const data = new TextDecoder().decode(await decompressEncoded(raw.subarray(fileprefix.length)));
 
         const type = new TextDecoder().decode(raw.subarray(0, fileprefix.length));
@@ -273,24 +303,28 @@ async function decompressEncoded(compressed) {
             console.log(prefix+'Input file was compressed with a higher JSSC version.');
             process.exit(1);
         }
+        
+        const {isDir, isFile_} = codes[arr[2]];
+        const extn = await decompress(arr[4]);
 
-        const checksum = arr[4];
-        if (convertBase(crc32.str(JSON.stringify(arr.slice(0,4))).toString(10), 10, 64) != checksum) {
+        const checksum = arr[5];
+        const checksumArr = arr.slice(0,5);
+        if (convertBase(crc32.str(JSON.stringify(checksumArr)).toString(10), 10, 64) != checksum) {
             console.log(prefix+'Input file was corrupted.');
             process.exit(1);
         }
 
-        const isDir = arr[2] == '' ? null : arr[2] == 1;
         const files = {};
 
         for (const [key, value] of Object.entries(arr[3])) {
             files[await decompress(key)] = await decompress(value);
         }
 
-        for (const [filePath, content] of Object.entries(files)) {
-            const fullPath = isDir
+        for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].length - b[0].length)) {
+            const fullPath = (isDir
                 ? path.join(output[0], filePath)
-                : output[0];
+                : output[0])
+                + (!isDir ? extn : '');
 
             fs.mkdirSync(path.dirname(fullPath), { recursive: true });
             fs.writeFileSync(fullPath, content, { encoding: 'utf8' });
