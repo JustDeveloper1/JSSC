@@ -4,14 +4,14 @@ if (process.platform !== "win32") {
     process.exit(0);
 }
 
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import https from "https";
 import { fileURLToPath } from "url";
-import { confirm } from "./confirm.js";
-import { name__ } from "../../lib/meta.js";
+import { confirm, welcome } from "./ui.js";
+import { name__, repo, site } from "../../lib/meta.js";
 
 if (
     (()=>{
@@ -41,13 +41,20 @@ const installDir = path.join(
 const iconPath = path.join(installDir, "jssc.ico");
 const localPkg = path.join(installDir, "pkg");
 const localBin = path.join(localPkg, "bin");
+const localCfg = path.join(installDir, "default.justc");
+const localVbs = path.join(installDir, "jssc.vbs");
 
 const pkgRoot = path.resolve(__dirname, "../../");
 const cliPath = path.resolve(localBin, "./index.js");
+const cfgPath = path.resolve(localBin, "./windows/default.justc");
+const vbsPath = path.resolve(localBin, "./windows/jssc.vbs");
 const nodePath = process.execPath;
 
+const ui = path.resolve(__dirname, "./ui");
+const uiProgressBar = path.resolve(ui, "./wait.ps1");
+
 function run(cmd) {
-    execSync(cmd, { stdio: "ignore" });
+    execSync(cmd, { stdio: "inherit" });
 }
 
 function downloadIcon() {
@@ -72,37 +79,71 @@ function downloadIcon() {
     });
 }
 
+function showProgress() {
+    return spawn("powershell", [
+        "-NoProfile", 
+        "-ExecutionPolicy", "Bypass", 
+        "-File", uiProgressBar,
+        "-Name", name__,
+        "-Text", "Installing JSSC Windows integration..."
+    ], { detached: false, stdio: 'ignore' });
+}
+
 async function setup() {
+    const progressUI = showProgress();
+
     await downloadIcon();
 
-    fs.mkdirSync(localPkg, {
-        recursive: true
-    });
-    fs.cpSync(pkgRoot, localPkg, {
-        recursive: true,
-        force: true
-    });
+    let e = [false, undefined];
+    try {
+        fs.mkdirSync(localPkg, {
+            recursive: true
+        });
+        fs.cpSync(pkgRoot, localPkg, {
+            recursive: true,
+            force: true
+        });
+        fs.copyFileSync(cfgPath, localCfg);
+        fs.rmSync(cfgPath);
+        fs.copyFileSync(vbsPath, localVbs);
+        fs.rmSync(vbsPath);
 
-    run(`reg add HKCU\\Software\\Classes\\${EXT} /ve /d ${APP_NAME} /f`);
+        const vbs = `wscript.exe \\"${localVbs}\\" \\"${nodePath}\\" \\"${cliPath}\\"`;
 
-    // Description
-    run(`reg add HKCU\\Software\\Classes\\${APP_NAME} /ve /d "JSSC Archive" /f`);
+        run(`reg add HKCU\\Software\\Classes\\${EXT} /ve /d ${APP_NAME} /f`);
 
-    // Icon
-    run(`reg add HKCU\\Software\\Classes\\${APP_NAME}\\DefaultIcon /ve /d "${iconPath}" /f`);
+        // Description
+        run(`reg add HKCU\\Software\\Classes\\${APP_NAME} /ve /d "JSSC Archive" /f`);
 
-    // Open command
-    run(`reg add HKCU\\Software\\Classes\\${APP_NAME}\\shell\\open\\command /ve /d "\\"${nodePath}\\" \\"${cliPath}\\" \\"%1\\" -v -d" /f`);
+        // Icon
+        run(`reg add HKCU\\Software\\Classes\\${APP_NAME}\\DefaultIcon /ve /d "${iconPath}" /f`);
 
-    // Context menu (files)
-    run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC /ve /d "Compress to JSSC (.jssc)" /f`);
-    run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC\\command /ve /d "\\"${nodePath}\\" \\"${cliPath}\\" \\"%1\\" -v" /f`);
-    run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC /v Icon /d "${iconPath}" /f`);
+        // Open command
+        run(`reg add HKCU\\Software\\Classes\\${APP_NAME}\\shell\\open\\command /ve /d "${vbs} \\"%1\\" -d -w -c \\"${localCfg}\\"" /f`);
 
-    // Context menu (dirs)
-    run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC /ve /d "Compress to JSSC (.jssc)" /f`);
-    run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC\\command /ve /d "\\"${nodePath}\\" \\"${cliPath}\\" \\"%1\\" -v" /f`);
-    run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC /v Icon /d "${iconPath}" /f`);
+        // Context menu (files)
+        run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC /ve /d "Compress to JSSC (.jssc)" /f`);
+        run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC\\command /ve /d "${vbs} \\"%1\\" -w -c \\"${localCfg}\\"" /f`);
+        run(`reg add HKCU\\Software\\Classes\\*\\shell\\JSSC /v Icon /d "${iconPath}" /f`);
+
+        // Context menu (dirs)
+        run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC /ve /d "Compress to JSSC (.jssc)" /f`);
+        run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC\\command /ve /d "${vbs} \\"%1\\" -w -c \\"${localCfg}\\"" /f`);
+        run(`reg add HKCU\\Software\\Classes\\Directory\\shell\\JSSC /v Icon /d "${iconPath}" /f`);
+    } catch (_) {
+        e = [true, _];
+    } finally {
+        if (progressUI) progressUI.kill();
+        if (welcome(name__,
+            'JSSC Windows integration has just been installed on your\ncomputer.\n\n' +
+            'Thanks for installing JavaScript String Compressor.\n' + 
+            "If you don't see any changes or .jssc file icons, try\nrebooting your computer.",
+        repo, site)) {
+            run(`powershell -Command "Start-Process cmd -ArgumentList '/c shutdown /r /t 1' -Verb RunAs -WindowStyle Hidden"`);
+        }
+    }
+
+    if (e[0]) throw e[1];
 }
 
 if (confirm(name__, 
@@ -112,12 +153,12 @@ if (confirm(name__,
     '- "Compress to JSSC (.jssc)" file explorer context menu button;\n' +
     '- Decompress .jssc files on open.\n\n' +
     'JSSC website and documentation: https://jssc.js.org/\n' +
-    'Source code GitHub repository: https://github.com/JustDeveloper1/JSSC\n\n' +
-    'To uninstall JSSC Windows integration, run "npx jssc -wu" (or "jssc -wu" if JSSC is installed globally) BEFORE UNINSTALLING NPM PACKAGE.\n\n' +
-    'JSSC (JavaScript String Compressor) is an open-source lossless string compression algorithm.\n© 2025-2026 JustDeveloper\n\n' + 
+    'Source code GitHub repository:\nhttps://github.com/JustDeveloper1/JSSC\n\n' +
+    'To uninstall JSSC Windows integration, run "npx jssc -wu"\n(or "jssc -wu" if JSSC is installed globally) BEFORE\nUNINSTALLING NPM PACKAGE.\n\n' +
+    'JSSC (JavaScript String Compressor) is an open-source\nlossless string compression algorithm.\n© 2025-2026 JustDeveloper\n\n' + 
     '[Yes] - Install JSSC Windows integration\n' + 
-    '[No] - Do not install JSSC Windows integration'
-)) setup().catch(err => {
+    '[No] - Do not install JSSC Windows integration',
+repo, site)) setup().catch(err => {
     console.error("Installation failed:", err.message);
     process.exit(1);
 });

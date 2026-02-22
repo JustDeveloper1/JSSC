@@ -1,0 +1,13 @@
+-- Default configuration options for JavaScript String Compressor
+
+-- Compress options
+JUSTC = y,
+recursiveCompression = y,
+segmentation = y,
+base64IntegerEncoding = y,
+
+-- Decompress options
+stringify = y,
+
+-- Other options
+debug = n.

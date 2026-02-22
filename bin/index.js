@@ -10,13 +10,35 @@ import { concat } from 'uint8arrays/concat';
 import crc32 from 'crc-32';
 import { convertBase } from "../lib/third-party/convertBase.js";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
+import { compress as compressUI, message } from "./windows/import.cjs";
 
 const args = process.argv.slice(2);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const currentdir = process.cwd();
+
+const _winUI = path.resolve(__dirname, "./windows/ui");
+const _winUIWait = path.resolve(_winUI, "./wait.ps1");
+function winUIWait(text) {
+    return spawn("powershell", [
+        "-NoProfile", 
+        "-ExecutionPolicy", "Bypass", 
+        "-File", _winUIWait,
+        "-Name", name__,
+        "-Text", text
+    ], { detached: false, stdio: 'ignore' });
+}
+
+let WinUIWait = false;
+function exit(code, err) {
+    if (WinUIWait) WinUIWait.kill();
+
+    if (code == 1) message(name__, err);
+
+    process.exit(code);
+}
 
 let mode = -1;
 let file = -1;
@@ -25,31 +47,44 @@ let output = '';
 let str = false;
 let config = '';
 let print = false;
+let windows = false;
 function invalidArgs() {
-    console.log(prefix+'Invalid arguments.');
-    process.exit(1);
+    const e = 'Invalid arguments.';
+    console.log(prefix + e);
+    exit(1, e);
 }
 function help() {
     console.log(
-        name__ + ' v' + version + ' CLI\n\n' +
-        'Usage:\n' +
-        'jssc <inputFile>\n' +
-        'jssc <inputFile> <outputFile>\n' +
-        'jssc <inputFile> --decompress\n' +
-        'jssc <inputFile> <outputFile> -- decompress\n\n' +
-        'Flags:\n' +
-        '-C              \t  --compress                \t:\tCompress input string/file. (default)\n' +
-        '-c <file.justc> \t  --config     <file.justc> \t:\tSet custom compressor configuration, same as the JS API, but it should be a JUSTC language script.\n' +
-        '-d              \t  --decompress              \t:\tDecompress input string/file.\n' +
-        '-h              \t  --help                    \t:\tPrint JSSC CLI usage and flags.\n' +
-        '-i <input>      \t  --input      <input>      \t:\tSet input file path / Set input string.\n' +
-        '-o <output.jssc>\t  --output     <output.jssc>\t:\tSet output file path.\n' +
-        // '-p              \t  --print                   \t:\tPrint output file.\n' +
-        // '-s              \t  --string                  \t:\tSet input type to string.\n' +
-        '-v              \t  --version                 \t:\tPrint current JSSC version.\n' +
-        '-wi             \t  --windows-install         \t:\tInstall JSSC Windows integration.\n' +
-        '-wu             \t  --windows-uninstall       \t:\tUninstall JSSC Windows integration.'
+        name__ + ' v' + version + ' CLI\n\n' + (
+            'Usage:\n\n' +
+            'jssc <inputFile>\n' +
+            'jssc <inputFile> <outputFile>\n' +
+            'jssc <inputFile> --decompress\n' +
+            'jssc <inputFile> <outputFile> --decompress\n\n\n' +
+            'Flags:\n\n' +
+            'Short flag,  Argument(s),  \tFlag,               Argument(s)   \t:\t Description\n' +
+            '---------------------------\t----------------------------------\t÷\t -----------------------------------------------------------------------------------------------------\n' +
+            '-C                         \t--compress                        \t:\t Compress input string/file. (default)\n' +
+            '-c           <file.justc>  \t--config            <file.justc>  \t:\t Set custom compressor configuration, same as the JS API, but it should be a JUSTC language script.\n' +
+            '-d                         \t--decompress                      \t:\t Decompress input string/file.\n' +
+            '-h                         \t--help                            \t:\t Print JSSC CLI usage and flags.\n' +
+            '-i           <input>       \t--input             <input>       \t:\t Set input file path / Set input string.\n' +
+            '-o           <output.jssc> \t--output            <output.jssc> \t:\t Set output file path.\n' +
+         // '-p                         \t--print                           \t:\t Print output file.\n' +
+         // '-s                         \t--string                          \t:\t Set input type to string.\n' +
+            '-v                         \t--version                         \t:\t Print current JSSC version.\n' +
+            '-w                         \t--windows                         \t:\t Use JSSC Windows integration. Synchronously waits for user input. (Requires JSSC Windows integration)\n' +
+            '-wi                        \t--windows-install                 \t:\t Install JSSC Windows integration. (Windows only)\n' +
+            '-wu                        \t--windows-uninstall               \t:\t Uninstall JSSC Windows integration. (Windows only)'
+        ).replaceAll('-\t', '-' + '- '.repeat(3)).replaceAll('\t -', ' -'.repeat(3) + ' -').replaceAll('\t', ' '.repeat(6))
     )
+}
+function checkWindows() {
+    if (process.platform !== "win32") {
+        const e = 'process.platform is not "win32".';
+        console.log(prefix + e);
+        exit(1, e);
+    }
 }
 for (const arg of args) {
     if (file == 0) {
@@ -104,11 +139,18 @@ for (const arg of args) {
             break;
         }
         case '-wi': case '--windows-install': {
+            checkWindows();
             execSync('node '+path.resolve(__dirname, "./windows/install.js"));
             break;
         }
         case '-wu': case '--windows-uninstall': {
+            checkWindows();
             execSync('node '+path.resolve(__dirname, "./windows/uninstall.js"));
+            break;
+        }
+        case '-w': case '--windows': {
+            checkWindows();
+            windows = true;
             break;
         }
         default:
@@ -120,13 +162,14 @@ for (const arg of args) {
 }
 
 if (mode != -1 && input == '') {
-    console.log(prefix+'Missing input.');
-    process.exit(1);
+    const e = 'Missing input.'
+    console.log(prefix + e);
+    exit(1, e);
 } else if (mode == -1 && input != '') {
     mode = 0;
 }
 if (args.length == 0) help();
-if (mode == -1) process.exit(0);
+if (mode == -1) exit(0);
 
 async function collectFiles(targetPath) {
     try {
@@ -202,6 +245,27 @@ function encodeCode(isDir, isFile) {
     return codesReverse[JSON.stringify({isDir, isFile})];
 }
 
+function findEmptyDirs(dir) {
+    if (!fs.statSync(dir).isDirectory()) return [];
+
+    let emptyDirs = [];
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const file of files) {
+        const path_ = path.join(dir, file.name);
+        
+        if (file.isDirectory()) {
+            emptyDirs = [...emptyDirs, ...findEmptyDirs(path_)];
+            
+            const content = fs.readdirSync(path_);
+            if (content.length === 0) {
+                emptyDirs.push(path_);
+            }
+        }
+    }
+    return emptyDirs;
+}
+
 (async (inp, out, cfg) => {
     const inpF = await collectFiles(inp);
     const isFile = !str ? inpF != null : !str;
@@ -214,8 +278,9 @@ function encodeCode(isDir, isFile) {
         return null
     })();
     if (mode == 1 && isDir) {
-        console.log(prefix+'Invalid input.');
-        process.exit(1);
+        const e = 'Invalid input.';
+        console.log(prefix + e);
+        exit(1, e);
     }
 
     let output = await collectFiles(out) || [out];
@@ -234,8 +299,9 @@ function encodeCode(isDir, isFile) {
 
     let config = await collectFiles(cfg) || [''];
     if (config.length > 1) {
-        console.log(prefix+'Invalid config input.');
-        process.exit(1);
+        const e = 'Invalid config input.';
+        console.log(prefix + e);
+        exit(1, e);
     }
     config = config[0];
     if (config == '') config = defaultConfig; 
@@ -248,6 +314,43 @@ function encodeCode(isDir, isFile) {
     }
 
     if (mode == 0) {
+        if (!(()=>{
+            if (!windows || !isFile) return true;
+
+            const customConfig = {};
+
+            const res = compressUI(
+                name__,
+                path.parse(inp).name + path.parse(inp).ext,
+                inp,
+                config
+            );
+
+            try {
+                customConfig.JUSTC = res[1].checked1;
+                customConfig.recursiveCompression = res[1].checked2;
+                customConfig.segmentation = res[1].checked3;
+                customConfig.base64IntegerEncoding = res[1].checked4;
+
+                config = {
+                    ...config,
+                    ...customConfig
+                };
+
+                return res[0];
+            } catch (_) {
+                return false;
+            }
+        })()) exit(0);
+
+        let extn = '';
+        if (!isDir) {
+            const extname = path.extname(input[0]);
+            if (path.parse(input[0]).name != extname) extn = extname;
+        }
+
+        if (windows) WinUIWait = winUIWait('Compressing "' + path.parse(inp).name + '"...');
+
         const files = {};
         for (const file of input) {
             files[
@@ -257,11 +360,8 @@ function encodeCode(isDir, isFile) {
                 config
             );
         }
-
-        let extn = '';
-        if (isFile) {
-            const extname = path.extname(input[0]);
-            if (path.parse(input[0]).name != extname) extn = extname;
+        for (const dir of findEmptyDirs(inp)) {
+            files[await compress(path.relative(currentdir, dir), config)] = 0;
         }
 
         const out = [
@@ -285,23 +385,27 @@ function encodeCode(isDir, isFile) {
         fs.writeFileSync(output[0] + (
             addFormat ? format : ''
         ), result);
-        process.exit(0);
+        exit(0);
     } else {
-        const raw = isFile ? fs.readFileSync(input[0]) : input[0];
-        const data = new TextDecoder().decode(await decompressEncoded(raw.subarray(fileprefix.length)));
+        if (windows) WinUIWait = winUIWait('Decompressing "' + path.parse(inp).name + '"...');
 
+        const raw = isFile ? fs.readFileSync(input[0]) : input[0];
+        
         const type = new TextDecoder().decode(raw.subarray(0, fileprefix.length));
         if (type != new TextDecoder().decode(fileprefix)) {
-            console.log(prefix+'Input file type is not JSSC1.');
-            process.exit(1);
+            const e = 'Input file type is not JSSC1.';
+            console.log(prefix + e);
+            exit(1, e + ' (The file might have been corrupted.)');
         }
 
+        const data = new TextDecoder().decode(await decompressEncoded(raw.subarray(fileprefix.length)));
         const arr = JSON.parse('[' + data + ']');
 
         const ver = makeSemVer(arr[0], arr[1]);
         if (gt(ver, makeSemVer(semver.major, semver.minor))) {
-            console.log(prefix+'Input file was compressed with a higher JSSC version.');
-            process.exit(1);
+            const e = 'Input file was compressed with a higher JSSC version.';
+            console.log(prefix + e);
+            exit(1, e);
         }
         
         const {isDir, isFile_} = codes[arr[2]];
@@ -310,25 +414,31 @@ function encodeCode(isDir, isFile) {
         const checksum = arr[5];
         const checksumArr = arr.slice(0,5);
         if (convertBase(crc32.str(JSON.stringify(checksumArr)).toString(10), 10, 64) != checksum) {
-            console.log(prefix+'Input file was corrupted.');
-            process.exit(1);
+            const e = 'Input file was corrupted.';
+            console.log(prefix + e);
+            exit(1, e);
         }
 
         const files = {};
 
         for (const [key, value] of Object.entries(arr[3])) {
-            files[await decompress(key)] = await decompress(value);
+            files[await decompress(key)] = value == 0 ? 0 : await decompress(value);
         }
 
         for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].length - b[0].length)) {
-            const fullPath = (isDir
+            const fullPath = path.format(path.parse((isDir
                 ? path.join(output[0], filePath)
                 : output[0])
-                + (!isDir ? extn : '');
+                + (!isDir ? extn : '')));
+
+            if (content == 0) {
+                fs.mkdirSync(fullPath, { recursive: true });
+                continue;
+            }
 
             fs.mkdirSync(path.dirname(fullPath), { recursive: true });
             fs.writeFileSync(fullPath, content, { encoding: 'utf8' });
         }
-        process.exit(0);
+        exit(0);
     }
 })(input, output, config);
