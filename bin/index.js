@@ -3,7 +3,8 @@
 import fs from "fs";
 import path from "path";
 import { compress, decompress } from "../src/index.js";
-import { prefix, version, semver, format, fileprefix, name__ } from "../lib/meta.js";
+import { prefix, version, format, name__ } from "../lib/meta.js";
+import { fileprefix, semver } from "../lib/meta.bin.js";
 import { SemVer, gt } from "semver";
 import JUSTC from "justc";
 import { concat } from 'uint8arrays/concat';

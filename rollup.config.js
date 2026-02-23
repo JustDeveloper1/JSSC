@@ -1,6 +1,8 @@
 import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
 
+import { name__ } from './lib/meta.js';
+
 export default {
     input: 'src/index.js',
     plugins: [
@@ -20,7 +22,7 @@ export default {
         {
             file: 'dist/jssc.js',
             format: 'umd',
-            name: 'JSSC'
+            name: name__
         }
     ],
     external: [

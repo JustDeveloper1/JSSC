@@ -3,8 +3,6 @@
 
 It operates directly on JavaScript strings (UTF-16) and produces compressed data that is also a valid JavaScript string.
 
-JSSC is distributed as a **UMD module** and can be used in browsers, Node.js, Deno, and other JavaScript environments.
-
 ## Key Features
 - ✨ **Lossless compression**
 - 🗜️ **High compression ratios**
@@ -22,7 +20,6 @@ JSSC is distributed as a **UMD module** and can be used in browsers, Node.js, De
   - every compression mode is verified by decompression before being accepted
 - 🔁 **Recursive compression**
 - 📜 **TypeScript definitions** included
-- 🌐 **UMD build** for browsers and static websites
 
 ## Important Version Compatibility Notice
 ⚠️ **Compressed strings produced by JSSC v1.x.x are NOT compatible with v2.x.x**
@@ -98,26 +95,35 @@ const compressed   = await JSSC.compress("Hello, world!");
 const decompressed = await JSSC.decompress(compressed);
 ```
 
-## API
+## JS API
 #### `compress(input: string | object | number): Promise<string>`
 Compresses the input and returns a compressed JavaScript string.
 
 #### `decompress(input: string, stringify?: boolean): Promise<string | object | number>`
 Decompresses a previously compressed string/object/integer.
 
+## CLI Usage
+```
+jssc --help
+```
+
+**Compress a file/directory to JSSC Archive:**
+```
+jssc <input>
+```
+**Decompress a JSSC Archive:**
+```
+jssc <input.jssc> -d
+```
+
 ## Dependencies
-JSSC depends on:
+`JSSC` depends on:
 - <img align="top" src="https://just.js.org/justc/logo-50.svg" alt="JUSTC Logo" width="26" height="26"> [JUSTC](https://just.js.org/justc) by [JustStudio.](https://juststudio.is-a.dev/)
+
+`JSSC CLI` and Format Handling depends on:
+- [crc-32](https://www.npmjs.com/package/crc-32) by [SheetJS](https://sheetjs.com/)
+- [uint8arrays](https://www.npmjs.com/package/uint8arrays) by [Alex Potsides](https://github.com/achingbrain)
+- [semver](https://semver.npmjs.com/) by [npm](https://www.npmjs.com/)
 
 ## License
 [MIT © 2025-2026 JustDeveloper](https://github.com/JustDeveloper1/JSSC/blob/main/LICENSE)
-
----
-## Minified Build
-For `.min.js`, I use [UglifyJS](https://github.com/mishoo/UglifyJS) by [Mihai Bazon](https://github.com/mishoo).
-```bash
-npm i uglify-js
-```
-```bash
-uglifyjs index.js -c -m "reserved=['compress','decompress']" -o index.min.js
-```

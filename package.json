@@ -101,7 +101,23 @@
     "rle",
     "2025",
     "2026",
-    "justc"
+    "justc",
+    "cli",
+    "JSSC1",
+    "archive",
+    "file",
+    "dir",
+    "directory",
+    "archives",
+    "files",
+    "dirs",
+    "directories",
+    "folder",
+    "folders",
+    "crc-32",
+    "semver",
+    "uint8arrays",
+    "gzip"
   ],
   "scripts": {
     "postinstall": "node ./bin/windows/install.js",
@@ -111,7 +127,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "rollup": "^4.57.1",
-    "uglify-js": "^3.19.3"
+    "terser": "^5.46.0"
   },
   "module": "dist/jssc.mjs",
   "browser": "dist/jssc.js",

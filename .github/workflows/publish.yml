@@ -32,7 +32,7 @@ jobs:
         run: npx rollup -c
 
       - name: Minify
-        run: npx uglifyjs dist/jssc.js -c -m "reserved=['compress','decompress','JSSC','jssc']" -o index.min.js
+        run: npx terser dist/jssc.js -c -m "reserved=['compress','decompress','JSSC','jssc']" --format "ascii_only=true" -o index.min.js
 
       - run: cp dist/jssc.js index.js
       - run: bash src/prefix.sh

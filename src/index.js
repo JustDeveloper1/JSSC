@@ -114,6 +114,61 @@ async function tryRecursive(base, opts) {
     );
 }
 
+function readOptions(options, defaults) {
+    if (typeof options != 'object') throw new Error(prefix+'Invalid options input.');
+    for (const [key, value] of Object.entries(options)) {
+        if (typeof value == 'undefined') continue;
+        if (typeof value != 'boolean') throw new Error(prefix+'Invalid options input.');
+        if (key.toLowerCase() in defaults) {
+            defaults[key.toLowerCase()] = value;
+            continue;
+        }
+        console.warn(prefix+`Unknown option: "${key}".`);
+    }
+    return defaults;
+}
+
+class JSSC {
+    constructor (com, dec, opts, m = 0) {
+        const headerchar = decToBin(com.charCodeAt(0), 16);
+        const code1 = headerchar.slice(11);
+        const code2 = headerchar.slice(0,4);
+        const code3 = headerchar.slice(5,8);
+        const s = headerchar.slice(4,5);
+        const i = headerchar.slice(8,9);
+        const o = headerchar.slice(9,10);
+        const b = headerchar.slice(10,11);
+
+        const compressed = {
+                string: com,
+                header: {
+                    code: binToDec(headerchar),
+                    bin: headerchar,
+                    blocks: [
+                        code2,
+                        s,
+                        code3,
+                        i,
+                        o,
+                        b,
+                        code1
+                    ],
+                    code1, code2, code3,
+                    s: s == '1',
+                    i: i == '1',
+                    o: o == '1',
+                    b: b == '0'
+                },
+                mode: binToDec(code1)
+            }
+
+        this.output = m == 0 ? compressed : dec;
+        this.options = opts;
+        this.input = m == 0 ? dec : compressed;
+        Object.freeze(this);
+    }
+}
+
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
@@ -124,26 +179,17 @@ async function tryRecursive(base, opts) {
  */
 export async function compress(input, options) {
     if (typeof input != 'string' && typeof input != 'object' && typeof input != 'number') throw new Error(prefix+'Invalid input.');
-    const opts = {
+    let opts = {
         segmentation: true,
         recursivecompression: true,
         justc: JUSTC ? true : false,
-        base64integerencoding: true
+        base64integerencoding: true,
+
+        debug: false
     };
 
     /* Read options */
-    if (options) {
-        if (typeof options != 'object') throw new Error(prefix+'Invalid options input.');
-        for (const [key, value] of Object.entries(options)) {
-            if (typeof value == 'undefined') continue;
-            if (typeof value != 'boolean') throw new Error(prefix+'Invalid options input.');
-            if (key.toLowerCase() in opts) {
-                opts[key.toLowerCase()] = value;
-                continue;
-            }
-            console.warn(prefix+`Unknown option: "${key}".`);
-        }
-    }
+    if (options) opts = readOptions(options, opts);
 
     const originalInput = input;
     let str = input;
@@ -718,6 +764,8 @@ export async function compress(input, options) {
         }
     } catch (_){};
 
+    if (opts.debug) return new JSSC(best, input, opts, 0);
+
     return best;
 }
 
@@ -787,6 +835,26 @@ async function parseJUSTC(str) {
  */
 export async function decompress(str, stringify = false) {
     if (typeof str != 'string') throw new Error(prefix+'Invalid input.');
+    const s = str;
+    let opts = {
+        stringify: false,
+
+        debug: false
+    }
+
+    /* Read options */
+    switch (typeof stringify) {
+        case 'boolean':
+            opts.stringify = stringify;
+            break;
+        case 'object':
+            opts = readOptions(stringify, opts);
+            break;
+        default:
+            opts.stringify = Boolean(stringify);
+            break;
+    }
+
     const strcodes = cryptCharCode((
         (str.charCodeAt(0) - 32 + 65535) % 65535
     ), true);
@@ -819,6 +887,10 @@ export async function decompress(str, stringify = false) {
         } else return out;
     }
     
+    function checkOutput(out) {
+        if (opts.debug) return new JSSC(s, out, opts, 1);
+        return out;
+    }
     async function processOutput(out) {
         let output = out;
 
@@ -831,12 +903,12 @@ export async function decompress(str, stringify = false) {
         else if (strcodes.code3 == 5) output = '{' + output + '}';                                                         /*    JSON Object (as string)    */
         if (strcodes.code3 == 2 || strcodes.code3 == 4 || strcodes.code3 == 6) output = JSON.parse(output);}               /* JSON Object/Array (as object) */
 
-        if (stringify) {
+        if (opts.stringify) {
             if (typeof output == 'object') output = JSON.stringify(output);
             else if (typeof output == 'number') output = output.toString();
         }
 
-        return output;
+        return checkOutput(output);
     }
     
     let output = '';
@@ -998,12 +1070,12 @@ export async function decompress(str, stringify = false) {
                 result += cluster;
             }
 
-            return result;
+            return checkOutput(result);
         }
         case 12:
-            return await decompress(
+            return checkOutput(await decompress(
                 await processOutput(convertBase(realstr, 64, 10))
-            );
+            ));
         case 13:
             let len = strcodes.code2;
             let slice = len == 16;
@@ -1024,7 +1096,7 @@ export async function decompress(str, stringify = false) {
                 out = await decompress(out, true);
             }
 
-            return out;
+            return checkOutput(out);
         }
         default:
             throw new Error(prefix+'Invalid compressed string');
