@@ -1,4 +1,4 @@
-# JSSC — JavaScript String Compressor
+# JSSC — JavaScript String Compressor [![Socket Badge](https://badge.socket.dev/npm/package/strc/latest)](https://badge.socket.dev/npm/package/strc/latest)
 **JSSC (JavaScript String Compressor)** is an open-source, **lossless string compression algorithm** designed specifically for JavaScript.
 
 It operates directly on JavaScript strings (UTF-16) and produces compressed data that is also a valid JavaScript string.
