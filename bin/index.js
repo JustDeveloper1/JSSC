@@ -32,10 +32,11 @@ function winUIWait(text) {
 }
 
 let WinUIWait = false;
+let windows = false;
 function exit(code, err) {
     if (WinUIWait) WinUIWait.kill();
 
-    if (code == 1) message(name__, err);
+    if (code == 1 && windows) message(name__, err);
 
     process.exit(code);
 }
@@ -47,7 +48,6 @@ let output = '';
 let str = false;
 let config = '';
 let print = false;
-let windows = false;
 function invalidArgs() {
     const e = 'Invalid arguments.';
     console.log(prefix + e);
@@ -63,15 +63,15 @@ function help() {
             'jssc <inputFile> <outputFile> --decompress\n\n\n' +
             'Flags:\n\n' +
             'Short flag,  Argument(s),  \tFlag,               Argument(s)   \t:\t Description\n' +
-            '---------------------------\t----------------------------------\t÷\t -----------------------------------------------------------------------------------------------------\n' +
+            '---------------------------\t----------------------------------\t÷\t ------------------------------------------------------------------------------------------------------\n' +
             '-C                         \t--compress                        \t:\t Compress input string/file. (default)\n' +
             '-c           <file.justc>  \t--config            <file.justc>  \t:\t Set custom compressor configuration, same as the JS API, but it should be a JUSTC language script.\n' +
             '-d                         \t--decompress                      \t:\t Decompress input string/file.\n' +
             '-h                         \t--help                            \t:\t Print JSSC CLI usage and flags.\n' +
             '-i           <input>       \t--input             <input>       \t:\t Set input file path / Set input string.\n' +
             '-o           <output.jssc> \t--output            <output.jssc> \t:\t Set output file path.\n' +
-         // '-p                         \t--print                           \t:\t Print output file.\n' +
-         // '-s                         \t--string                          \t:\t Set input type to string.\n' +
+            '-p                         \t--print                           \t:\t Print output file content. Note that JSSC operates on UTF-16, so the printed output may get corrupted.\n' +
+            '-s                         \t--string                          \t:\t Set input type to string. The output file type will not be JSSC1, but a compressed string.\n' +
             '-v                         \t--version                         \t:\t Print current JSSC version.\n' +
             '-w                         \t--windows                         \t:\t Use JSSC Windows integration. Synchronously waits for user input. (Requires JSSC Windows integration)\n' +
             '-wi                        \t--windows-install                 \t:\t Install JSSC Windows integration. (Windows only)\n' +
@@ -283,6 +283,12 @@ function findEmptyDirs(dir) {
         exit(1, e);
     }
 
+    if (!str && inpF == null) {
+        const e = 'File not found.';
+        console.log(prefix + e);
+        exit(1, e);
+    }
+
     let output = await collectFiles(out) || [out];
     let addFormat = false;
     if (output.length > 1) {
@@ -314,6 +320,11 @@ function findEmptyDirs(dir) {
     }
 
     if (mode == 0) {
+        if (isFile && print) {
+            const e = 'Invalid arguments. Cannot compress a file/directory to JSSC1 archive and print the result.';
+            console.log(prefix + e);
+            exit(1, e);
+        }
         if (!(()=>{
             if (!windows || !isFile) return true;
 
@@ -351,6 +362,18 @@ function findEmptyDirs(dir) {
 
         if (windows) WinUIWait = winUIWait('Compressing "' + path.parse(inp).name + '"...');
 
+        if (str) {
+            const compressed = await compress(input[0]);
+            if (output[0] != '') {
+                fs.mkdirSync(path.dirname(output[0]), { recursive: true });
+                fs.writeFileSync(output[0], compressed, { encoding: 'utf8' });
+            }
+            if (print) {
+                console.log(compressed);
+            }
+            exit(0);
+        }
+
         const files = {};
         for (const file of input) {
             files[
@@ -387,15 +410,32 @@ function findEmptyDirs(dir) {
         ), result);
         exit(0);
     } else {
+        if (print && isFile) {
+            const e = 'Invalid arguments. Cannot decompress JSSC1 archive and print the result.';
+            console.log(prefix + e);
+            exit(1, e);
+        }
         if (windows) WinUIWait = winUIWait('Decompressing "' + path.parse(inp).name + '"...');
 
         const raw = isFile ? fs.readFileSync(input[0]) : input[0];
+
+        if (str) {
+            const decompressed = await decompress(raw);
+            if (output[0] != '') {
+                fs.mkdirSync(path.dirname(output[0]), { recursive: true });
+                fs.writeFileSync(output[0], decompressed, { encoding: 'utf8' });
+            }
+            if (print) {
+                console.log(decompressed);
+            }
+            exit(0);
+        }
         
         const type = new TextDecoder().decode(raw.subarray(0, fileprefix.length));
         if (type != new TextDecoder().decode(fileprefix)) {
-            const e = 'Input file type is not JSSC1.';
+            const e = 'Input file type is not JSSC1. (The file might have been corrupted.)';
             console.log(prefix + e);
-            exit(1, e + ' (The file might have been corrupted.)');
+            exit(1, e);
         }
 
         const data = new TextDecoder().decode(await decompressEncoded(raw.subarray(fileprefix.length)));
