@@ -38,7 +38,7 @@ jobs:
       - run: bash src/prefix.sh
 
       - name: Run tests
-        run: node test
+        run: npm test
 
       - name: Publish
         run: npm publish --access public
