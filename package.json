@@ -5,12 +5,12 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JustDeveloper1/JSSC.git"
+    "url": "git+https://github.com/justdevw/JSSC.git"
   },
   "author": "JustDeveloper",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/JustDeveloper1/JSSC/issues"
+    "url": "https://github.com/justdevw/JSSC/issues"
   },
   "engines": {
     "node": ">=22.0.0"
