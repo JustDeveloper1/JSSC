@@ -431,7 +431,7 @@ export async function compress(input, options) {
                 }
             }
         }
-        [output, repeatAfter, seq] = processOutput(out);
+        [output, repeatAfter, seq] = processOutput(output);
         const res = charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId, 0, seq, code3)) + output;
         if (!(await validate(res))) return null;
         return res;
