@@ -12,7 +12,8 @@ import {
     stringChunks,
     chunkArray,
     decToBin,
-    binToDec
+    binToDec,
+    B64Padding
 } from './utils.js';
 import { freqMap, freqMapSplitters } from './modes/freqMap.js';
 import { segments, splitGraphemes } from './modes/segmentation.js';
@@ -20,6 +21,7 @@ import { _JSSC } from './encodings.js';
 import { compressSequences, decompressSequences } from './sequences.js';
 import { convertBase } from '../lib/third-party/convertBase.js';
 import { compressB64, decompressB64 } from './modes/base64.js';
+import { encode, decode } from '@strc/utf16-to-any-base';
 
 function cryptCharCode(
     code, get = false,
@@ -1103,9 +1105,18 @@ export async function decompress(str, stringify = false) {
     }
 }
 
+export async function compressToBase64(...input) {
+    return B64Padding(encode(await compress(...input)));
+}
+export async function decompressFromBase64(base64, ...input) {
+    return await decompress(decode(base64.replace(/=+$/, '')), ...input);
+}
+
 export default {
     compress,
     decompress,
+    compressToBase64,
+    decompressFromBase64,
     get [Symbol.toStringTag]() {
         return name__;
     }

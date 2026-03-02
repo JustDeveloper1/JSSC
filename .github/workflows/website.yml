@@ -30,7 +30,7 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
           source-directory: "scripts"
-          destination-github-username: JustDeveloper1
+          destination-github-username: justdevw
           destination-repository-name: "JSSC.js.org"
           target-branch: "gh-pages"
           target-directory: "jssc"

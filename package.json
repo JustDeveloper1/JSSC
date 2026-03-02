@@ -28,6 +28,7 @@
     "lib"
   ],
   "dependencies": {
+    "@strc/utf16-to-any-base": "^1.0.0",
     "crc-32": "^1.2.2",
     "justc": "^0.1.0",
     "semver": "^7.7.4",
@@ -120,8 +121,7 @@
     "gzip"
   ],
   "scripts": {
-    "postinstall": "node ./bin/windows/install.js",
-    "preuninstall": "node ./bin/windows/uninstall.js"
+    "test": "node test"
   },
   "devDependencies": {
     "@rollup/plugin-json": "^6.1.0",

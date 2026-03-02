@@ -1,4 +1,4 @@
-# JSSC — JavaScript String Compressor [![Socket Badge](https://badge.socket.dev/npm/package/strc/latest)](https://badge.socket.dev/npm/package/strc/latest)
+# JSSC — JavaScript String Compressor
 **JSSC (JavaScript String Compressor)** is an open-source, **lossless string compression algorithm** designed specifically for JavaScript.
 
 It operates directly on JavaScript strings (UTF-16) and produces compressed data that is also a valid JavaScript string.
@@ -117,13 +117,14 @@ jssc <input.jssc> -d
 ```
 
 ## Dependencies
-`JSSC` depends on:
+JSSC depends on:
 - <img align="top" src="https://just.js.org/justc/logo-50.svg" alt="JUSTC Logo" width="26" height="26"> [JUSTC](https://just.js.org/justc) by [JustStudio.](https://juststudio.is-a.dev/)
+- [unicode-emoji-json](https://www.npmjs.com/package/unicode-emoji-json) by [Mu-An Chiou](https://github.com/muan)
 
-`JSSC CLI` and Format Handling depends on:
+JSSC CLI and Format Handling depends on:
 - [crc-32](https://www.npmjs.com/package/crc-32) by [SheetJS](https://sheetjs.com/)
 - [uint8arrays](https://www.npmjs.com/package/uint8arrays) by [Alex Potsides](https://github.com/achingbrain)
 - [semver](https://semver.npmjs.com/) by [npm](https://www.npmjs.com/)
 
 ## License
-[MIT © 2025-2026 JustDeveloper](https://github.com/JustDeveloper1/JSSC/blob/main/LICENSE)
+[MIT © 2025-2026 JustDeveloper](https://github.com/justdevw/JSSC/blob/main/LICENSE)
