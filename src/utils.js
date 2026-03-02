@@ -2,6 +2,7 @@ export function stringCodes(str) {
     let output = [];
     let max = 0;
     let maxCharCode = 0;
+    let minCharCode = 65535;
     let min = Infinity;
     String(str).split('').forEach(char => {
         const code = char.charCodeAt();
@@ -9,8 +10,9 @@ export function stringCodes(str) {
         max = Math.max(max, code.toString().length);
         maxCharCode = Math.max(maxCharCode, code);
         min = Math.min(min, code.toString().length);
+        minCharCode = Math.min(minCharCode, code);
     });
-    return {max, output, maxCharCode, min};
+    return {max, output, maxCharCode, min, minCharCode};
 }
 
 export function codesString(cds) {

@@ -74,7 +74,8 @@ function cryptCharCode(
 /* 11: Emoji Packing                    */ /* 12      */
 /* 12: Base-64 Integer Encoding         */ /* 13      */
 /* 13: Base-64 Packing                  */ /* 14      */
-/* 14 - 30: Reserved                    */ /* --      */
+/* 14 - 29: Reserved                    */ /* --      */
+/* 30: Offset Encoding                  */ /* 15      */
 /* 31: Recursive Compression            */ /* 11      */
 
 async function tryRecursive(base, opts) {
@@ -174,7 +175,7 @@ class JSSC {
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
- * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean}} [options]
+ * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean, offsetEncoding?: boolean}} [options]
  * @returns {Promise<string>} Compressed string
  * @example await compress('Hello, World!');
  * @since 1.0.0
@@ -187,6 +188,7 @@ export async function compress(input, options) {
         justc: JUSTC ? true : false,
         base64integerencoding: true,
         base64packing: true,
+        offsetencoding: false,
 
         debug: false
     };
@@ -302,7 +304,8 @@ export async function compress(input, options) {
     const safeTry = async (fn) => {
         try {
             return await fn();
-        } catch {
+        } catch (err) {
+            if (opts.debug) console.warn(err);
             return null;
         }
     };
@@ -745,9 +748,37 @@ export async function compress(input, options) {
         return null;
     });
 
+    /* Offset Encoding */
+    function offsetEncoding(string) {
+        const group = Math.floor(stringCodes(string).minCharCode / 32);
+        const offset = group * 32;
+        let result = '';
+        for (let i = 0; i < string.length; i++) {
+            result += String.fromCharCode(string.charCodeAt(i) - offset);
+        }
+        const char = charCode(binToDec(decToBin(group, 11) + decToBin(30, 5)));
+        return [result, char, group];
+    }
+    async function validateOffsetEncoding(string, group) {
+        try {
+            return group > 0 && await validate(string);
+        } catch (_) {
+            return false;
+        }
+    }
+    if (opts.offsetencoding) candidates.push(async () => {
+        const enc = offsetEncoding(originalInput);
+        const res = enc[1] + await compress(enc[0], {
+            ...opts,
+            offsetencoding: false
+        });
+        if (await validateOffsetEncoding(res, enc[2])) return res;
+        return null;
+    });
+
     /* run all */
     const results = (await Promise.all(candidates.map(fn => safeTry(fn))))
-        .filter(r => typeof r === 'string' && r.length <= String(str).length);
+        .filter(r => typeof r === 'string' && r.length <= String(originalInput).length);
 
     let best;
     if (!results.length) {
@@ -767,7 +798,14 @@ export async function compress(input, options) {
         }
     } catch (_){};
 
-    if (opts.debug) return new JSSC(best, input, opts, 0);
+    /* postprocessing */
+    if (opts.offsetencoding) {
+        const enc = offsetEncoding(best);
+        const res = enc[1] + enc[0];
+        if (await validateOffsetEncoding(res, enc[2])) best = res;
+    }
+
+    if (opts.debug) return new JSSC(best, originalInput, opts, 0);
 
     return best;
 }
@@ -829,6 +867,17 @@ async function parseJUSTC(str) {
     }
 }
 
+function offsetEncoding(str, group) {
+    const offset = group * 32;
+    let result = "";
+    
+    for (let i = 0; i < str.length; i++) {
+        result += String.fromCharCode(str.charCodeAt(i) + offset);
+    }
+    
+    return result;
+}
+
 /**
  * **JavaScript String Compressor - decompress function.**
  * @param {string} str Compressed string
@@ -858,9 +907,8 @@ export async function decompress(str, stringify = false) {
             break;
     }
 
-    const strcodes = cryptCharCode((
-        (str.charCodeAt(0) - 32 + 65535) % 65535
-    ), true);
+    const charcode = (str.charCodeAt(0) - 32 + 65535) % 65535;
+    const strcodes = cryptCharCode(charcode, true);
     const strcode = strcodes.code;
     
     function repeatChars(txt) {
@@ -869,12 +917,12 @@ export async function decompress(str, stringify = false) {
     
     /* sequences */
     let realstr = str.slice(1);
-    if (strcodes.sequences && ![8,9,13].includes(strcode)) {
+    if (strcodes.sequences && ![8,9,13,29,30].includes(strcode)) {
         realstr = decompressSequences(realstr);
     }
     
     /* RLE */
-    if (strcodes.repeatAfter && ![9,13].includes(strcode)) {
+    if (strcodes.repeatAfter && ![9,13,29,30].includes(strcode)) {
         realstr = repeatChars(realstr);
     }
     
@@ -1084,6 +1132,9 @@ export async function decompress(str, stringify = false) {
             let slice = len == 16;
             if (slice) len = realstr.slice(0,1).charCodeAt(0) + 16;
             return await processOutput(decompressB64(slice ? realstr.slice(1) : realstr, len));
+        case 30:
+            const dec = offsetEncoding(realstr, binToDec(decToBin(charcode, 16).slice(0,11)));
+            return checkOutput(await decompress(dec));
         case 31: {
             let out = realstr;
             const depth = strcodes.code2;
