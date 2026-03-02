@@ -1,3 +1,5 @@
+import { name__ } from "../lib/meta";
+
 function charsBase() {
     const charsBase = {};
     function addChar(i) {
