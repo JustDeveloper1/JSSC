@@ -22,7 +22,10 @@ export default {
         {
             file: 'dist/jssc.js',
             format: 'umd',
-            name: name__
+            name: name__,
+            globals: {
+                justc: "JUSTC"
+            }
         }
     ],
     external: [

@@ -1120,13 +1120,3 @@ export async function decompressFromBase64(base64, ...input) {
 
     return decompressed;
 }
-
-export default {
-    compress,
-    decompress,
-    compressToBase64,
-    decompressFromBase64,
-    get [Symbol.toStringTag]() {
-        return name__;
-    }
-}
