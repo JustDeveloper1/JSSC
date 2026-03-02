@@ -236,6 +236,8 @@ _JSSC.HIBN = function() { /* Hindi, Bengali */
         chrsBase[i - 2176 - 128] = _JSSC._char(i);
     }
     chrsBase[255] = ' ';
+    chrsBase[229] = chrsBase[0];
+    chrsBase[0] = "\x00";
     return chrsBase;
 };
 _JSSC._JA = [
