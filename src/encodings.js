@@ -319,6 +319,8 @@ _JSSC.AR = function() { /* Arabic */
     for (let i = 0x600; i < 0x6FF; i++) {
         chrsBase[i - 1536] = _JSSC._char(i);
     }
+    chrsBase[255] = chrsBase[0];
+    chrsBase[0] = "\x00";
     return chrsBase;
 }
 _JSSC.use = class {
