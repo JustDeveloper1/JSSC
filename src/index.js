@@ -1106,10 +1106,19 @@ export async function decompress(str, stringify = false) {
 }
 
 export async function compressToBase64(...input) {
-    return B64Padding(encode(await compress(...input)));
+    const compressed = await compress(...input);
+
+    if (compressed instanceof JSSC) throw new Error(prefix+'Invalid options input.');
+
+    return B64Padding(encode(compressed));
 }
+
 export async function decompressFromBase64(base64, ...input) {
-    return await decompress(decode(base64.replace(/=+$/, '')), ...input);
+    const decompressed = await decompress(decode(base64.replace(/=+$/, '')), ...input);
+
+    if (decompressed instanceof JSSC) throw new Error(prefix+'Invalid options input.');
+
+    return decompressed;
 }
 
 export default {
