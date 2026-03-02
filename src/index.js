@@ -22,6 +22,10 @@ import { compressSequences, decompressSequences } from './sequences.js';
 import { convertBase } from '../lib/third-party/convertBase.js';
 import { compressB64, decompressB64 } from './modes/base64.js';
 import { encode, decode } from '@strc/utf16-to-any-base';
+import utf8 from "utf8"; const { eUTF8, dUTF8 } = (()=>{
+    const { encode, decode } = utf8;
+    return { eUTF8: encode, dUTF8: decode };
+})();
 
 function cryptCharCode(
     code, get = false,
@@ -188,7 +192,7 @@ export async function compress(input, options) {
         justc: JUSTC ? true : false,
         base64integerencoding: true,
         base64packing: true,
-        offsetencoding: false,
+        offsetencoding: true,
 
         debug: false
     };
@@ -759,9 +763,9 @@ export async function compress(input, options) {
         const char = charCode(binToDec(decToBin(group, 11) + decToBin(30, 5)));
         return [result, char, group];
     }
-    async function validateOffsetEncoding(string, group) {
+    async function validateOffsetEncoding(string, inp, group) {
         try {
-            return group > 0 && await validate(string);
+            return group > 0 && eUTF8(string).length < eUTF8(inp).length && await validate(string);
         } catch (_) {
             return false;
         }
@@ -772,7 +776,7 @@ export async function compress(input, options) {
             ...opts,
             offsetencoding: false
         });
-        if (await validateOffsetEncoding(res, enc[2])) return res;
+        if (await validateOffsetEncoding(res, originalInput, enc[2])) return res;
         return null;
     });
 
@@ -802,7 +806,7 @@ export async function compress(input, options) {
     if (opts.offsetencoding) {
         const enc = offsetEncoding(best);
         const res = enc[1] + enc[0];
-        if (await validateOffsetEncoding(res, enc[2])) best = res;
+        if (await validateOffsetEncoding(res, best, enc[2])) best = res;
     }
 
     if (opts.debug) return new JSSC(best, originalInput, opts, 0);
