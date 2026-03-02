@@ -174,7 +174,7 @@ class JSSC {
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
- * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean}} [options]
+ * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean}} [options]
  * @returns {Promise<string>} Compressed string
  * @example await compress('Hello, World!');
  * @since 1.0.0
@@ -186,6 +186,7 @@ export async function compress(input, options) {
         recursivecompression: true,
         justc: JUSTC ? true : false,
         base64integerencoding: true,
+        base64packing: true,
 
         debug: false
     };
@@ -372,7 +373,7 @@ export async function compress(input, options) {
             return output;
         });
         /* Base-64 Integer Encoding */
-        candidates.push(async () => {
+        if (opts.base64integerencoding) candidates.push(async () => {
             let [output, RLE, seq] = processOutput(convertBase(str, 10, 64));
             output = await compress(output, {
                 JUSTC: false,
@@ -729,7 +730,7 @@ export async function compress(input, options) {
     });
 
     /* Base-64 Packing */
-    if (/^[0-9a-zA-Z+/]+$/.test(str)) candidates.push(async () => {
+    if (/^[0-9a-zA-Z+/]+$/.test(str) && opts.base64packing) candidates.push(async () => {
         const { data, length } = compressB64(str);
 
         let len = '';
