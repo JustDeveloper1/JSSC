@@ -771,6 +771,7 @@ export async function compress(input, options) {
             return group > 0 && (
                 eUTF8(string).length < eUTF8(inp).length ||
                 encode(string).length < encode(inp).length ||
+                (new TextEncoder()).encode(string).length < (new TextEncoder()).encode(inp).length ||
                 opts.offsetencode
             ) && await validate(string);
         } catch (_) {
