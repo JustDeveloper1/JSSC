@@ -343,6 +343,11 @@ function findEmptyDirs(dir) {
                 customConfig.recursiveCompression = res[1].checked2;
                 customConfig.segmentation = res[1].checked3;
                 customConfig.base64IntegerEncoding = res[1].checked4;
+                customConfig.base64Packing = res[1].checked5;
+                customConfig.offsetEncoding = res[1].checked6;
+                customConfig.lzstring = res[1].checked7;
+
+                customConfig.depthLimit = Math.max(res[1].slider, 1);
 
                 config = {
                     ...config,

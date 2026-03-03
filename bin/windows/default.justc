@@ -5,9 +5,15 @@ JUSTC = y,
 recursiveCompression = y,
 segmentation = y,
 base64IntegerEncoding = y,
+base64Packing = y,
+offsetEncoding = y,
+lzstring = y,
+offsetEncode = n,
+depthLimit = 10,
 
 -- Decompress options
 stringify = y,
 
 -- Other options
-debug = n.
+debug = n,
+depth = 0 .

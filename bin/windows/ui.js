@@ -59,17 +59,23 @@ export function compress(title, name, icon, config) {
             1: config.JUSTC,
             2: config.recursiveCompression,
             3: config.segmentation,
-            4: config.base64IntegerEncoding
+            4: config.base64IntegerEncoding,
+            5: config.base64Packing,
+            6: config.offsetEncoding,
+            7: config.lzstring,
         }
 
-        const cmd = `powershell -ExecutionPolicy Bypass -File "${compresPs1}" ` +
+        const cmd = `pwsh -ExecutionPolicy Bypass -File "${compresPs1}" ` +
                     `-IconPath "${icon}" ` +
                     `-CheckDefault1 ${cd[1] ? 1 : 0} ` +
                     `-Title "${title}" ` +
                     `-FileName "${name}" ` +
                     `-CheckDefault2 ${cd[2] ? 1 : 0} ` +
                     `-CheckDefault3 ${cd[3] ? 1 : 0} ` +
-                    `-CheckDefault4 ${cd[4] ? 1 : 0}`;
+                    `-CheckDefault4 ${cd[4] ? 1 : 0} ` +
+                    `-CheckDefault5 ${cd[5] ? 1 : 0} ` +
+                    `-CheckDefault6 ${cd[6] ? 1 : 0} ` +
+                    `-CheckDefault7 ${cd[7] ? 1 : 0}`;
 
         const stdout = execSync(cmd).toString();
         
