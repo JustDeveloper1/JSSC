@@ -96,7 +96,8 @@ async function tryRecursive(base, opts) {
         depth++;
         const next = await compress(cur, {
             ...opts,
-            recursivecompression: false
+            recursivecompression: false,
+            depth: opts.depth + 1
         });
 
         if (next.length >= cur.length) break;
@@ -126,8 +127,12 @@ async function tryRecursive(base, opts) {
 }
 
 function readOptions(options, defaults) {
-    if (typeof options != 'object') throw new Error(prefix+'Invalid options input.');
+    if (typeof options != 'object' || Array.isArray(options)) throw new Error(prefix+'Invalid options input.');
     for (const [key, value] of Object.entries(options)) {
+        if ((key == 'depth' || key.toLowerCase() == 'depthlimit') && typeof value == 'number') {
+            defaults[key.toLowerCase()] = value;
+            continue;
+        }
         if (typeof value == 'undefined') continue;
         if (typeof value != 'boolean') throw new Error(prefix+'Invalid options input.');
         if (key.toLowerCase() in defaults) {
@@ -199,12 +204,15 @@ export async function compress(input, options) {
         offsetencoding: true,
         
         offsetencode: false,
+        depthlimit: 10,
 
-        debug: false
+        debug: false,
+        depth: 0
     };
 
     /* Read options */
     if (options) opts = readOptions(options, opts);
+    if (opts.depth >= opts.depthlimit) throw new Error('');
 
     const originalInput = input;
     let str = input;
@@ -392,7 +400,8 @@ export async function compress(input, options) {
                 JUSTC: false,
                 segmentation: false,
                 recursiveCompression: false,
-                base64IntegerEncoding: false
+                base64IntegerEncoding: false,
+                depth: opts.depth + 1,
             });
             output = charCode(cryptCharCode(12, false, isNum, RLE, -1, 0, seq, code3)) + output;
             if (!(await validate(output))) return null;
@@ -647,7 +656,8 @@ export async function compress(input, options) {
             for (const seg of segs) {
                 const segOpts = {
                     ...opts,
-                    segmentation: false
+                    segmentation: false,
+                    depth: opts.depth + 1
                 }
                 const compressed = await compress(seg, segOpts);
 
@@ -785,7 +795,8 @@ export async function compress(input, options) {
         const enc = offsetEncoding(originalInput);
         const res = enc[1] + await compress(enc[0], {
             ...opts,
-            offsetencoding: false
+            offsetencoding: false,
+            depth: opts.depth + 1
         });
         if (await validateOffsetEncoding(res, originalInput, enc[2])) return res;
         return null;
