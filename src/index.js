@@ -202,6 +202,7 @@ export async function compress(input, options) {
         base64integerencoding: true,
         base64packing: true,
         offsetencoding: true,
+        lzstring: true,
         
         offsetencode: false,
         depthlimit: 10,
@@ -803,7 +804,7 @@ export async function compress(input, options) {
     });
 
     /* lz-string */
-    candidates.push(async () => {
+    if (opts.lzstring) candidates.push(async () => {
         const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
         if (await validate(res)) return res;
         return null;
