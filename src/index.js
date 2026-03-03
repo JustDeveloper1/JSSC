@@ -26,6 +26,7 @@ import utf8 from "utf8"; const { eUTF8, dUTF8 } = (()=>{
     const { encode, decode } = utf8;
     return { eUTF8: encode, dUTF8: decode };
 })();
+import { compressToUTF16 as cLZ, decompressFromUTF16 as dLZ } from 'lz-string';
 
 function cryptCharCode(
     code, get = false,
@@ -786,6 +787,13 @@ export async function compress(input, options) {
         return null;
     });
 
+    /* lz-string */
+    candidates.push(async () => {
+        const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
+        if (await validate(res)) return res;
+        return null;
+    });
+
     /* run all */
     const results = (await Promise.all(candidates.map(fn => safeTry(fn))))
         .filter(r => typeof r === 'string' && r.length <= String(originalInput).length);
@@ -927,12 +935,12 @@ export async function decompress(str, stringify = false) {
     
     /* sequences */
     let realstr = str.slice(1);
-    if (strcodes.sequences && ![8,9,13,29,30].includes(strcode)) {
+    if (strcodes.sequences && ![8,9,13,30].includes(strcode)) {
         realstr = decompressSequences(realstr);
     }
     
     /* RLE */
-    if (strcodes.repeatAfter && ![9,13,29,30].includes(strcode)) {
+    if (strcodes.repeatAfter && ![9,13,30].includes(strcode)) {
         realstr = repeatChars(realstr);
     }
     
@@ -952,7 +960,7 @@ export async function decompress(str, stringify = false) {
         if (opts.debug) return new JSSC(s, out, opts, 1);
         return out;
     }
-    async function processOutput(out) {
+    async function processOutput(out, checkOut = true) {
         let output = out;
 
         if (strcodes.repeatBefore && strcode != 3 && strcode != 12) {
@@ -969,7 +977,7 @@ export async function decompress(str, stringify = false) {
             else if (typeof output == 'number') output = output.toString();
         }
 
-        return checkOutput(output);
+        return checkOut ? checkOutput(output) : output;
     }
     
     let output = '';
@@ -1135,13 +1143,15 @@ export async function decompress(str, stringify = false) {
         }
         case 12:
             return checkOutput(await decompress(
-                await processOutput(convertBase(realstr, 64, 10))
+                await processOutput(convertBase(realstr, 64, 10), false)
             ));
         case 13:
             let len = strcodes.code2;
             let slice = len == 16;
             if (slice) len = realstr.slice(0,1).charCodeAt(0) + 16;
             return await processOutput(decompressB64(slice ? realstr.slice(1) : realstr, len));
+        case 29:
+            return await processOutput(dLZ(realstr));
         case 30:
             const dec = offsetEncoding(realstr, binToDec(decToBin(charcode, 16).slice(0,11)));
             return checkOutput(await decompress(dec));
