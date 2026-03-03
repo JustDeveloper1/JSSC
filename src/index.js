@@ -179,7 +179,7 @@ class JSSC {
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
- * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean, offsetEncoding?: boolean}} [options]
+ * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean, offsetEncoding?: boolean, offsetEncode?: boolean, debug?: boolean}} [options]
  * @returns {Promise<string>} Compressed string
  * @example await compress('Hello, World!');
  * @since 1.0.0
@@ -193,6 +193,8 @@ export async function compress(input, options) {
         base64integerencoding: true,
         base64packing: true,
         offsetencoding: true,
+        
+        offsetencode: false,
 
         debug: false
     };
@@ -765,7 +767,11 @@ export async function compress(input, options) {
     }
     async function validateOffsetEncoding(string, inp, group) {
         try {
-            return group > 0 && eUTF8(string).length < eUTF8(inp).length && await validate(string);
+            return group > 0 && (
+                eUTF8(string).length < eUTF8(inp).length ||
+                encode(string).length < encode(inp).length ||
+                opts.offsetencode
+            ) && await validate(string);
         } catch (_) {
             return false;
         }
