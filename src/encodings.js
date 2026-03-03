@@ -1,4 +1,4 @@
-import { name__ } from "../lib/meta";
+import { name__ } from "../lib/meta.js";
 
 function charsBase() {
     const charsBase = {};

@@ -26,7 +26,10 @@ import utf8 from "utf8"; const { eUTF8 } = (()=>{
     const { encode } = utf8;
     return { eUTF8: encode };
 })();
-import { compressToUTF16 as cLZ, decompressFromUTF16 as dLZ } from 'lz-string';
+import lz from 'lz-string'; const { cLZ, dLZ } = (()=>{
+    const { compressToUTF16, decompressFromUTF16 } = lz;
+    return { cLZ: compressToUTF16, dLZ: decompressFromUTF16 };
+})();
 
 function cryptCharCode(
     code, get = false,
