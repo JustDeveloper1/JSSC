@@ -22,9 +22,9 @@ import { compressSequences, decompressSequences } from './sequences.js';
 import { convertBase } from '../lib/third-party/convertBase.js';
 import { compressB64, decompressB64 } from './modes/base64.js';
 import { encode, decode } from '@strc/utf16-to-any-base';
-import utf8 from "utf8"; const { eUTF8, dUTF8 } = (()=>{
-    const { encode, decode } = utf8;
-    return { eUTF8: encode, dUTF8: decode };
+import utf8 from "utf8"; const { eUTF8 } = (()=>{
+    const { encode } = utf8;
+    return { eUTF8: encode };
 })();
 import { compressToUTF16 as cLZ, decompressFromUTF16 as dLZ } from 'lz-string';
 
