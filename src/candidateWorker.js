@@ -14,6 +14,8 @@ import {
     B64P,
     OE,
     LZS,
+    compress,
+    decompress
 } from './index.js';
 
 const map = {
@@ -63,7 +65,7 @@ port.onmessage = async (e) => {
             ...context,
             opts: {
                 ...context.opts,
-                __workerDepth: (context.opts?.__workerDepth || 0) + 1
+                worker: context.opts.worker + 1
             }
         };
 

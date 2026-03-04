@@ -32,36 +32,47 @@ export async function runInWorkers(candidateNames, context) {
     const results = [];
     let active = 0;
 
+
     return new Promise((resolve) => {
         function next() {
             if (!queue.length && active === 0) {
                 resolve(results);
                 return;
             }
-
             while (active < maxWorkers && queue.length) {
                 const name = queue.shift();
 
                 const worker = new WorkerImpl(
-                    new URL('./candidateWorker.js', import.meta.url),
+                    new URL('../src/candidateWorker.js', import.meta.url),
                     { type: 'module' }
                 );
 
                 active++;
 
-                worker.onmessage = (e) => {
-                    results.push(e.data?.result ?? null);
+                const finish = (result) => {
+                    results.push(result ?? null);
                     worker.terminate();
                     active--;
                     next();
                 };
 
-                worker.onerror = () => {
-                    results.push(null);
-                    worker.terminate();
-                    active--;
-                    next();
-                };
+                if (isNode) {
+                    worker.on('message', (msg) => {
+                        finish(msg?.result);
+                    });
+
+                    worker.on('error', () => {
+                        finish(null);
+                    });
+                } else {
+                    worker.onmessage = (e) => {
+                        finish(e.data?.result);
+                    };
+
+                    worker.onerror = () => {
+                        finish(null);
+                    };
+                }
 
                 worker.postMessage({
                     candidate: name,
