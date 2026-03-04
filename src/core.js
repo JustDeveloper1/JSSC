@@ -185,6 +185,29 @@ class JSSC {
     }
 }
 
+function offsetEncoding(string) {
+    const group = Math.floor(stringCodes(string).minCharCode / 32);
+    const offset = group * 32;
+    let result = '';
+    for (let i = 0; i < string.length; i++) {
+        result += String.fromCharCode(string.charCodeAt(i) - offset);
+    }
+    const char = charCode(binToDec(decToBin(group, 11) + decToBin(30, 5)));
+    return [result, char, group];
+}
+async function validateOffsetEncoding(string, inp, group) {
+    try {
+        return group > 0 && (
+            eUTF8(string).length < eUTF8(inp).length ||
+            encode(string).length < encode(inp).length ||
+            (new TextEncoder()).encode(string).length < (new TextEncoder()).encode(inp).length ||
+            opts.offsetencode
+        ) && await validate(string);
+    } catch (_) {
+        return false;
+    }
+}
+
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
@@ -770,28 +793,6 @@ export async function compress(input, options) {
     });
 
     /* Offset Encoding */
-    function offsetEncoding(string) {
-        const group = Math.floor(stringCodes(string).minCharCode / 32);
-        const offset = group * 32;
-        let result = '';
-        for (let i = 0; i < string.length; i++) {
-            result += String.fromCharCode(string.charCodeAt(i) - offset);
-        }
-        const char = charCode(binToDec(decToBin(group, 11) + decToBin(30, 5)));
-        return [result, char, group];
-    }
-    async function validateOffsetEncoding(string, inp, group) {
-        try {
-            return group > 0 && (
-                eUTF8(string).length < eUTF8(inp).length ||
-                encode(string).length < encode(inp).length ||
-                (new TextEncoder()).encode(string).length < (new TextEncoder()).encode(inp).length ||
-                opts.offsetencode
-            ) && await validate(string);
-        } catch (_) {
-            return false;
-        }
-    }
     if (opts.offsetencoding) candidates.push(async () => {
         const enc = offsetEncoding(originalInput);
         const res = enc[1] + await compress(enc[0], {
@@ -1207,4 +1208,551 @@ export async function decompressFromBase64(base64, ...input) {
     if (decompressed instanceof JSSC) throw new Error(prefix+'Invalid options input.');
 
     return decompressed;
+}
+
+async function validate(compressed, originalInput) {
+    try {
+        const dec = await decompress(compressed, true);
+        return dec === String(originalInput);
+    } catch {
+        return false;
+    }
+}
+const n = /^\d+$/.test;
+function repeatChars(txt) {
+    return txt.replace(/(.)\1+/g, ( a , b ) => b + a.length);
+}
+function processOutput(output, disableSeq = false) {
+    let repeatAfter = false;
+    let sequences = false;
+
+    const hasDigits = /\d/.test(output);
+    if (!hasDigits) {
+        repeatAfter = true;
+        output = repeatChars(output);
+    }
+    
+    if (!disableSeq) {
+        const compressed = compressSequences(output);
+        if (compressed.sequences) {
+            sequences = true;
+            return [compressed.compressed, repeatAfter, sequences];
+        }
+    }
+    
+    return [output, repeatAfter, sequences];
+}
+
+/**
+ * Inline Integer Encoding
+ */
+export async function IIE(context){
+    const {str, isNum, code3, originalInput} = context;
+    if (!n(str)) return null;
+
+    const out = await (async () => {
+        const num = parseInt(str);
+        if (num < 15) {
+            return charCode(
+                cryptCharCode(isNum ? 6 : 0, false, false, false, -1, num + 1, false, code3)
+            );
+        }
+        return null;
+    })();
+    if (!out) return null;
+    if (!(await validate(out, originalInput))) return null;
+    return out;
+}
+
+/**
+ * Decimal Integer Packing
+ */
+export async function DIP(context) {
+    const {str, isNum, code3, originalInput} = context;
+    if (!n(str)) return null;
+
+    const convertNums = {
+        'A': 10,
+        'B': 11,
+        'C': 12,
+        'D': 13,
+        'E': 14
+    };
+    const inputt = str
+        .replaceAll('10', 'A')
+        .replaceAll('11', 'B')
+        .replaceAll('12', 'C')
+        .replaceAll('13', 'D')
+        .replaceAll('14', 'E');
+    const binOut = [];
+    for (const character of inputt.split('')) {
+        if (/\d/.test(character)) {
+            binOut.push(decToBin(parseInt(character), 4));
+        } else {
+            binOut.push(decToBin(convertNums[character], 4));
+        }
+    };
+    let [output, RLE, sequences] = ['', false, false];
+    function binPadStart(bin) {
+        if (bin.length < 16) {
+            const numm = 4 - stringChunks(bin, 4).length;
+            return decToBin(15, 4).repeat(numm)+bin;
+        } else return bin;
+    }
+    for (const character of chunkArray(binOut, 4)) {
+        output += String.fromCharCode(binToDec(binPadStart(character.join(''))));
+    }
+    [output, RLE, sequences] = processOutput(output);
+    output = charCode(cryptCharCode(3, false, isNum, RLE, -1, 0, sequences, code3)) + output;
+    if (!(await validate(output, originalInput))) return null;
+    return output;
+}
+
+/**
+ * Base-64 Integer Encoding
+ */
+export async function B64IE(context) {
+    const {str, isNum, code3, originalInput, opts} = context;
+    if (!n(str) || !opts.base64integerencoding) return null;
+
+    let [output, RLE, seq] = processOutput(convertBase(str, 10, 64));
+    output = await compress(output, {
+        JUSTC: false,
+        segmentation: false,
+        recursiveCompression: false,
+        base64IntegerEncoding: false,
+        depth: opts.depth + 1,
+    });
+    output = charCode(cryptCharCode(12, false, isNum, RLE, -1, 0, seq, code3)) + output;
+    if (!(await validate(output, originalInput))) return null;
+    return output;
+}
+
+/**
+ * Two-Digit CharCode Concatenation
+ */
+export async function TDCCC(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const strdata = stringCodes(str);
+    if (!(strdata.max === 2 && strdata.min === 2)) return null;
+
+    let chars = strdata.output;
+    let [output, repeatAfter, seq] = ['', false, false];
+    function addChar(codee) {
+        output += String.fromCharCode(codee);
+    }
+    function sliceChars(numbr) {
+        chars = chars.slice(numbr);
+    }
+    while (chars.length > 0) {
+        if (chars.length === 1) {
+            addChar(chars[0]);
+            sliceChars(1);
+        } else if (chars.length < 3) {
+            for (const char of chars) {
+                addChar(char);
+            }
+            sliceChars(chars.length)
+        } else {
+            const a1 = parseInt(String(chars[0]) + String(chars[1]) + String(chars[2]));
+            const a2 = parseInt(String(chars[0]) + String(chars[1]));
+            if (checkChar(a1)) {
+                addChar(a1);
+                sliceChars(3)
+            } else if (checkChar(a2)) {
+                addChar(a2);
+                sliceChars(2)
+            } else {
+                addChar(chars[0]);
+                sliceChars(1)
+            }
+        }
+    }
+    [output, repeatAfter, seq] = processOutput(output);
+    const res = charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId, 0, seq, code3)) + output;
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/**
+ * Two-Byte CharCode Concatenation
+ */
+export async function TBCCC(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const strdata = stringCodes(str);
+    if (strdata.maxCharCode >= 256) return null;
+
+    let [out, repeatAfter, seq] = ['', false, false];
+    for (const pair of stringChunks(str, 2)) {
+        let bin = '';
+        for (const c of pair) bin += decToBin(c.charCodeAt(0), 8);
+        out += String.fromCharCode(binToDec(bin));
+    }
+
+    [out, repeatAfter, seq] = processOutput(out);
+    const res = charCode(cryptCharCode(2, false, repeatBefore, repeatAfter, beginId, 0, seq, code3)) + out;
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/**
+ * Character Encoding
+ */
+export async function CE(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const characterEncodings = new _JSSC.use();
+    const stringArray = str.split('');
+    let useCharacterEncoding;
+    let charEncodingID = NaN;
+    
+    for (const [characterEncodingName, characterEncoding] of Object.entries(characterEncodings)) {
+        const table = characterEncoding();
+        table.length = 256;
+        const arrayy = Array.from(table);
+        let usethisone = true;
+        for (const character of stringArray) {
+            if (!arrayy.includes(character)) {
+                usethisone = false;
+                break;
+            }
+        }
+        if (usethisone) {
+            useCharacterEncoding = characterEncoding();
+            charEncodingID = _JSSC._IDs[characterEncodingName.slice(4)];
+            break;
+        }
+    }
+    
+    if (useCharacterEncoding) {
+        const reverseCharacterEncoding = {};
+        for (const [charCode, character] of Object.entries(useCharacterEncoding)) {
+            reverseCharacterEncoding[character] = charCode;
+        }
+        const binaryCharCodes = [];
+        const convertCharCodes = [];
+        for (const character of stringArray) {
+            binaryCharCodes.push(decToBin(parseInt(reverseCharacterEncoding[character]), 8));
+        }
+        for (const binCharCodes of chunkArray(binaryCharCodes, 2)) {
+            convertCharCodes.push(binCharCodes.join('').padStart(16, '0'));
+        }
+        let [outputStr, repeatAfter, seq] = ['', false, false];
+        for (const characterCode of convertCharCodes) {
+            outputStr += String.fromCharCode(binToDec(characterCode))
+        }
+
+        [outputStr, repeatAfter, seq] = processOutput(outputStr);
+        outputStr = charCode(cryptCharCode(5, false, repeatBefore, repeatAfter, beginId, charEncodingID, seq, code3)) + outputStr;
+        if (await validate(outputStr)) return outputStr;
+    }
+    return null;
+}
+
+/**
+ * Alphabet Encoding
+ */
+export async function AE(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const uniq = [...new Set(str.split('').map(c => c.charCodeAt(0)))];
+    if (uniq.length >= 16) return null;
+
+    let out = uniq.map(c => String.fromCharCode(c)).join('');
+    let buf = [];
+    let [repeatAfter, seq] = [false, false];
+
+    for (const c of str) {
+        buf.push(uniq.indexOf(c.charCodeAt(0)));
+        if (buf.length === 4) {
+            out += String.fromCharCode(binToDec(buf.map(n => decToBin(n, 4)).join('')));
+            buf = [];
+        }
+    }
+
+    if (buf.length) {
+        out += String.fromCharCode(
+            binToDec(buf.map(n => decToBin(n, 4)).join('').padStart(16, '1'))
+        );
+    }
+
+    [out, repeatAfter, seq] = processOutput(out);
+    const res = charCode(cryptCharCode(4, false, repeatBefore, repeatAfter, beginId, uniq.length, seq, code3)) + out;
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/**
+ * Frequency Map
+ */
+export async function FM(context) {
+    const {str} = context;
+
+    for (const splitter of freqMapSplitters) {
+        const test = freqMap.test(str, splitter);
+        if (!Array.isArray(test)) continue;
+
+        const [, , sp, packed] = test;
+        const code2 = binToDec((test[0] - 1).toString() + decToBin(freqMapSplitters.indexOf(sp), 3));
+        const res = charCode(cryptCharCode(7, false, false, false, -1, code2)) + packed;
+
+        if (await validate(res)) return res;
+    }
+    return null;
+}
+
+/*
+ * URL
+ */
+export async function URL_(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    if (typeof str !== 'string') return null;
+
+    let url;
+    try {
+        url = new URL(_JSSC._begin[beginId] + str);
+    } catch {
+        return null;
+    }
+
+    const originalHref = url.href;
+
+    let hasPercent = /%[0-9A-Fa-f]{2}/.test(originalHref);
+    let hasPunycode = url.hostname.includes('xn--');
+    let hasQuery = !!url.search;
+    let hasFragment = !!url.hash;
+
+    /* normalize */
+    let normalized = originalHref.slice(_JSSC._begin[beginId].length);
+
+    /* punycode to unicode */
+    if (hasPunycode && typeof punycode !== 'undefined') {
+        url.hostname = punycode.toUnicode(url.hostname);
+        normalized = url.href.slice(_JSSC._begin[beginId].length);
+    }
+
+    /* percent to bytes */
+    let bytes = [];
+    for (let i = 0; i < normalized.length; i++) {
+        const ch = normalized[i];
+        if (ch === '%' && i + 2 < normalized.length) {
+            const hex = normalized.slice(i + 1, i + 3);
+            if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+                bytes.push(parseInt(hex, 16));
+                i += 2;
+                continue;
+            }
+        }
+        bytes.push(normalized.charCodeAt(i));
+    }
+    
+    let odd = bytes.length & 1;
+    if (odd) bytes.push(0);
+
+    /* bytes to UTF16 */
+    let out = '';
+    for (let i = 0; i < bytes.length; i += 2) {
+        out += String.fromCharCode(
+            (bytes[i] << 8) | (bytes[i + 1] ?? 0)
+        );
+    }
+
+    let code2 =
+        (hasPercent ? 1 : 0) |
+        (hasPunycode ? 2 : 0) |
+        (hasQuery ? 4 : 0) |
+        (hasFragment ? 8 : 0);
+
+    let repeatAfter = false;
+    [out, repeatAfter,] = processOutput(out, true);
+
+    const res =
+        charCode(
+            cryptCharCode(
+                8,
+                false,
+                repeatBefore,
+                repeatAfter,
+                beginId,
+                code2,
+                odd,
+                code3
+            )
+        ) + out;
+
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/*
+ * Segmentation
+ */
+export async function S(context) {
+    const {str, code3, repeatBefore, beginId, opts} = context;
+
+    const segs = segments(str);
+
+    if (segs.length < 2) return null;
+
+    let out = segs.length - 2 < 15 ? '' : String.fromCharCode(segs.length - 2);
+
+    for (const seg of segs) {
+        const segOpts = {
+            ...opts,
+            segmentation: false,
+            depth: opts.depth + 1
+        }
+        const compressed = await compress(seg, segOpts);
+
+        out += String.fromCharCode(seg.length);
+        out += compressed;
+    }
+
+    const res =
+        charCode(
+            cryptCharCode(
+                9,
+                false,
+                repeatBefore,
+                opts.justc,
+                beginId,
+                Math.min(segs.length - 2, 15),
+                opts.recursivecompression,
+                code3
+            )
+        ) + out;
+
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/*
+ * String Repetition
+ */
+export async function SR(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const rcheck = str.match(/^(.{1,7}?)(?:\1)+$/);
+    if (!rcheck) return null;
+
+    const main = rcheck[1];
+    const count = str.length / main.length;
+    if (Math.floor(count) != count || count < 1 || count > 65535 + 15) return null;
+    let [out, repeatAfter, seq] = ['', false, false];
+    [out, repeatAfter, seq] = processOutput(main);
+
+    const res =
+        charCode(
+            cryptCharCode(
+                10,
+                false,
+                repeatBefore,
+                repeatAfter,
+                beginId,
+                Math.min(count - 1, 15),
+                seq,
+                code3
+            )
+        ) + (
+            (count - 1) > 14 ? String.fromCharCode(count - 15) : ''
+        ) + out;
+
+    if (!(await validate(res))) return null;
+    return res;
+}
+
+/**
+ * Emoji Packing
+ */
+export async function EP(context) {
+    const {str, code3, repeatBefore, beginId} = context;
+
+    const graphemes = splitGraphemes(str);
+    function isEmojiCluster(cluster) {
+        const code = cluster.codePointAt(0);
+        return (code >= 0x1F300 && code <= 0x1FAFF);
+    }
+    
+    if (!graphemes.every(isEmojiCluster)) return null;
+
+    const base = 0x1F300;
+    let bits = '';
+
+    for (const g of graphemes) {
+        const cps = Array.from(g).map(c => c.codePointAt(0));
+        bits += decToBin(cps.length, 3);
+        for (const cp of cps) {
+            bits += decToBin(cp - base, 11);
+        }
+    }
+
+    let out = '';
+    for (const chunk of stringChunks(bits, 16)) {
+        out += String.fromCharCode(binToDec(chunk.padEnd(16,'0')));
+    }
+
+    const [outPostprocessed, repeatAfter, seq] = processOutput(out);
+
+    function hchar(ra = false, sq = false) {
+        return cryptCharCode(11, false, repeatBefore, ra, beginId, 0, sq, code3);
+    }
+    const resA = charCode(hchar(repeatAfter, seq)) + outPostprocessed;
+    const resB = charCode(hchar()) + out;
+
+    if (await validate(resA)) return resA;
+    if (await validate(resB)) return resB;
+    return null;
+}
+
+/**
+ * Base-64 Packing
+ */
+export async function B64P(context) {
+    const {str, code3, repeatBefore, beginId, opts} = context;
+
+    if (!(/^[0-9a-zA-Z+/]+$/.test(str) && opts.base64packing)) return null;
+    
+    const { data, length } = compressB64(str);
+
+    let len = '';
+    if (length > 15) {
+        const lng = length - 16
+        if (lng > 0xFFFF) return null;
+        len = String.fromCharCode(lng);
+    }
+
+    const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, Math.min(length, 16), false, code3)) + len + data;
+    if (await validate(res)) return res;
+    return null;
+}
+
+/* 
+ * Offset Encoding
+ */
+export async function OE(context) {
+    const {originalInput, opts} = context;
+    if (!opts.offsetencoding) return null;
+
+    const enc = offsetEncoding(originalInput);
+    const res = enc[1] + await compress(enc[0], {
+        ...opts,
+        offsetencoding: false,
+        depth: opts.depth + 1
+    });
+    if (await validateOffsetEncoding(res, originalInput, enc[2])) return res;
+    return null;
+}
+
+/*
+ * lz-string
+ */
+export async function LZS(context) {
+    const {str, code3, repeatBefore, beginId, opts} = context;
+    if (!opts.lzstring) return null;
+    const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
+    if (await validate(res)) return res;
+    return null;
 }
