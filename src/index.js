@@ -902,7 +902,7 @@ async function parseJUSTC(str) {
     }
 }
 
-function offsetEncoding(str, group) {
+function offsetDecoding(str, group) {
     const offset = group * 32;
     let result = "";
     
@@ -1170,7 +1170,7 @@ export async function decompress(str, stringify = false) {
         case 29:
             return await processOutput(dLZ(realstr));
         case 30:
-            const dec = offsetEncoding(realstr, binToDec(decToBin(charcode, 16).slice(0,11)));
+            const dec = offsetDecoding(realstr, binToDec(decToBin(charcode, 16).slice(0,11)));
             return checkOutput(await decompress(dec));
         case 31: {
             let out = realstr;
