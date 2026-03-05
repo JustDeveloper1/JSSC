@@ -1,8 +1,5 @@
 import JUSTC from 'justc';
 import { name__, prefix } from '../lib/meta.js';
-if ((String.fromCharCode(65536).charCodeAt(0) === 65536) || !(String.fromCharCode(256).charCodeAt(0) === 256)) {
-    throw new Error(prefix+'Supported UTF-16 only!')
-}
 
 import { 
     stringCodes, 
