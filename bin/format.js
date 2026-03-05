@@ -73,16 +73,17 @@ export async function toFile(isDir, extn, files, dirs) {
 
     const extn8 = extn == null ? data(int8(0)) : data(B64toUI8A(extn));
 
+    const fsObjE = Object.entries(files);
     const output = [];
-    for (const [path, content] of Object.entries(files)) {
-        const path8 = data(B64toUI8A(path));
+    for (const [path, content] of fsObjE) {
+        const path8 = fsObjE.length == 1 ? int32(0) : data(B64toUI8A(path));
         const file8 = data(B64toUI8A(content));
 
         output.push(path8, file8);
     }
     for (let i = 0; i < dirs.length; i++) {
         const dir8 = data(B64toUI8A(dirs[i]));
-        const zero = data(int8(0));
+        const zero = int32(0);
 
         output.push(dir8, zero);
     }
@@ -150,7 +151,7 @@ export async function fromFile(uint8) {
         if (content == null) corrupted();
 
         if (content == 0) dirs.push(path);
-        else files[path] = content;
+        else files[path == 0 ? name__ : path] = content;
 
         if (i == uint8.length) break;
     }

@@ -356,10 +356,14 @@ function findEmptyDirs(dir) {
             exit(0);
         }
 
+        function p(cd, to) {
+            return path.relative(cd, to).replaceAll("\\", "/");
+        }
+
         const files = {};
         for (const file of input) {
             files[
-                (await compressToBase64(path.relative(currentdir, file), config)).replace(/=+$/, '')
+                (await compressToBase64(p(currentdir, file), config)).replace(/=+$/, '')
             ] = (await compressLargeToBase64(
                 fs.readFileSync(file, { encoding: 'utf8' }), 
                 config
@@ -367,7 +371,7 @@ function findEmptyDirs(dir) {
         }
         const dirs = [];
         for (const dir of findEmptyDirs(inp)) {
-            dirs.push((await compressToBase64(path.relative(currentdir, dir)).replace(/=+$/, ''), config));
+            dirs.push((await compressToBase64(p(currentdir, dir)).replace(/=+$/, ''), config));
         }
         
         fs.writeFileSync(output[0] + (
@@ -410,11 +414,11 @@ function findEmptyDirs(dir) {
         try {
             const {isDir, extn, files, dirs} = await fromFile(raw);
 
-            for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].length - b[0].length)) {
+            for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].localeCompare(b[0]))) {
                 const fullPath = path.format(
                     path.parse(
                         (isDir
-                            ? path.join(output[0], await decompressFromBase64(filePath))
+                            ? path.join(output[0], (await decompressFromBase64(filePath)).replaceAll("/", path.sep))
                             : output[0]
                         ) + (!isDir ? await decompressFromBase64(extn) : ''))
                 );
@@ -423,7 +427,7 @@ function findEmptyDirs(dir) {
                 fs.writeFileSync(fullPath, await decompressFromBase64(content), { encoding: 'utf8' });
             };
             for (let i = 0; i < dirs.length; i++) {
-                fs.mkdirSync(await decompressFromBase64(dirs[i]), { recursive: true });
+                fs.mkdirSync((await decompressFromBase64(dirs[i])).replaceAll("/", path.sep), { recursive: true });
             }
             exit(0);
         } catch (err) {
