@@ -797,12 +797,13 @@ async function validate(compressed, originalInput) {
 
     let result;
 
-    try {
+    if (compressed.length > (originalInput.length + 1)) result = false;
+    else try {
         const dec = await decompress(compressed, true);
         result = dec === String(originalInput);
     } catch {
         result = false;
-    }
+    };
     
     setCache(compressed, result);
     return result;
