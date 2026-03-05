@@ -241,11 +241,12 @@ export async function compress(input, options) {
     const originalInput = input;
     let str = input;
     let isNum = false;
+    const set = new Set(str);
 
     if (typeof str === 'number') {
         isNum = true;
         str = str.toString();
-        if (str.includes('.')) throw new Error(prefix+'Invalid input.');
+        if (set.has('.')) throw new Error(prefix+'Invalid input.');
     }
 
     let repeatBefore = false;

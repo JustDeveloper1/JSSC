@@ -7,7 +7,8 @@ function findSequences(str, minLength = 2, minCount = 3) {
     for (let i = 0; i < n - minLength * minCount + 1; i++) {
         for (let len = 2; len <= Math.min(30, Math.floor((n - i) / minCount)); len++) {
             const pattern = str.substr(i, len);
-            if (pattern.includes(SEQUENCE_MARKER)) continue;
+            const set = new Set(pattern);
+            if (set.has(SEQUENCE_MARKER)) continue;
             
             let count = 1;
             for (let j = i + len; j <= n - len; j += len) {
@@ -49,8 +50,9 @@ function findSequences(str, minLength = 2, minCount = 3) {
 
 export function compressSequences(str) {
     if (str.length < 20) return {compressed: str, sequences: false};
-    
-    if (str.includes(SEQUENCE_MARKER)) {
+
+    const set = new Set(str);
+    if (set.has(SEQUENCE_MARKER)) {
         return {compressed: str, sequences: false};
     }
     
