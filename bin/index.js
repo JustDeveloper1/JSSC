@@ -4,11 +4,7 @@ import fs from "fs";
 import path from "path";
 import { compress, decompress, compressLargeToBase64, compressToBase64, decompressFromBase64 } from "../src/index.js";
 import { prefix, version, format, name__ } from "../lib/meta.js";
-import { fileprefix, semver } from "../lib/meta.bin.js";
-import { SemVer, gt } from "semver";
 import JUSTC from "justc";
-import crc32 from 'crc-32';
-import { convertBase } from "../lib/third-party/convertBase.js";
 import { fileURLToPath } from "url";
 import { execSync, spawn } from "child_process";
 import { compress as compressUI, message } from "./windows/import.cjs";
@@ -225,36 +221,6 @@ const defaultConfig = {
     depth: 0,
     worker: 0,
 };
-
-function makeSemVer(major, minor) {
-    return new SemVer(major.toString() + '.' + minor.toString() + '.0');
-}
-
-async function compressEncoded(data) {
-    const stream = new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-async function decompressEncoded(compressed) {
-    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-const codes = {
-    0: {isDir: null,  isFile: false},
-    1: {isDir: false, isFile: false},
-    2: {isDir: true,  isFile: false},
-    3: {isDir: null,  isFile: true },
-    4: {isDir: false, isFile: true },
-    5: {isDir: true,  isFile: true },
-}
-const codesReverse = {};
-for (const [key, value] of Object.entries(codes)) {
-    codesReverse[JSON.stringify(value)] = parseInt(key);
-}
-function encodeCode(isDir, isFile) {
-    return codesReverse[JSON.stringify({isDir, isFile})];
-}
 
 function findEmptyDirs(dir) {
     if (!fs.statSync(dir).isDirectory()) return [];
