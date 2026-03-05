@@ -186,12 +186,12 @@ class JSSC {
 function offsetEncoding(string) {
     const group = Math.floor(stringCodes(string).minCharCode / 32);
     const offset = group * 32;
-    let result = '';
+    const result = [];
     for (let i = 0; i < string.length; i++) {
-        result += String.fromCharCode(string.charCodeAt(i) - offset);
+        result.push(String.fromCharCode(string.charCodeAt(i) - offset));
     }
     const char = charCode(binToDec(decToBin(group, 11) + decToBin(30, 5)));
-    return [result, char, group];
+    return [result.join(''), char, group];
 }
 async function validateOffsetEncoding(string, inp, group) {
     try {
@@ -430,22 +430,22 @@ function characterEncodings(id, realstr) {
     if (possibleCharEncoding) {
         const characterEncodings_ = new _JSSC.use();
         const characterEncoding = characterEncodings_[name__+possibleCharEncoding]();
-        let output = '';
-        for (const characters of realstr.split('')) {
-            const characterCode = characters.charCodeAt();
+        const output = [];
+        for (let i = 0; i < realstr.length; i++) {
+            const characterCode = realstr.charCodeAt(i);
             const binCode0 = decToBin(characterCode, 0);
             function binCodeToChar(charr) {
                 return String(characterEncoding[String(binToDec(charr))]);
             }
             if (binCode0.length > 8) {
                 const [character1, character2] = stringChunks(decToBin(characterCode, 16), 8);
-                output += binCodeToChar(character1) + binCodeToChar(character2);
+                output.push(binCodeToChar(character1) + binCodeToChar(character2));
             } else {
                 const character = decToBin(characterCode, 8);
-                output += binCodeToChar(character);
+                output.push(binCodeToChar(character));
             }
         }
-        return output;
+        return output.join('');
     }
 }
 
@@ -480,13 +480,13 @@ async function parseJUSTC(str) {
 
 function offsetDecoding(str, group) {
     const offset = group * 32;
-    let result = "";
+    const result = [];
     
     for (let i = 0; i < str.length; i++) {
-        result += String.fromCharCode(str.charCodeAt(i) + offset);
+        result.push(String.fromCharCode(str.charCodeAt(i) + offset));
     }
     
-    return result;
+    return result.join('');
 }
 
 /**
@@ -573,69 +573,72 @@ export async function decompress(str, stringify = false) {
         return checkOut ? checkOutput(output) : output;
     }
     
-    let output = '';
+    const output = [];
     switch (strcode) {
         case 0: case 6:
             if (strcodes.code2 > 0) return await processOutput(String(strcodes.code2 - 1));
             return await processOutput(realstr);
         case 1:
             function addChar(cde) {
-                output += String.fromCharCode(cde);
+                output.push(String.fromCharCode(cde));
             }
-            for (const char of realstr.split('')) {
-                const charcde = String(char.charCodeAt(0));
+            for (let i = 0; i < realstr.length; i++) {
+                const char = realstr.charCodeAt(i);
+                const charcde = String(char);
                 if (charcde.length > 2) {
                     const charcds = stringChunks(charcde, 2);
                     for (const chrcode of charcds) {
                         addChar(parseInt(chrcode));
                     }
                 } else {
-                    addChar(char.charCodeAt(0));
+                    addChar(char);
                 }
             }
-            return await processOutput(output);
+            return await processOutput(output.join(''));
         case 2:
             function toChar(binCode) {
                 return String.fromCharCode(binToDec(binCode));
             }
-            for (const char of realstr.split('')) {
-                const binCode = decToBin(char.charCodeAt(0), 16);
-                const binCode0 = decToBin(char.charCodeAt(0), 0);
+            for (let i = 0; i < realstr.length; i++) {
+                const char = realstr.charCodeAt(i);
+                const binCode = decToBin(char, 16);
+                const binCode0 = decToBin(char, 0);
                 if (binCode0.length > 8) {
                     const [bin1, bin2] = stringChunks(binCode, 8);
-                    output += toChar(bin1) + toChar(bin2);
+                    output.push(toChar(bin1) + toChar(bin2));
                 } else {
-                    const binCode8 = decToBin(char.charCodeAt(0), 8);
-                    output += toChar(binCode8);
+                    const binCode8 = decToBin(char, 8);
+                    output.push(toChar(binCode8));
                 }
             }
-            return await processOutput(output);
+            return await processOutput(output.join(''));
         case 3:
-            for (const char of realstr.split('')) {
-                const binCodes = stringChunks(decToBin(char.charCodeAt(0), 16), 4);
+            for (let i = 0; i < realstr.length; i++) {
+                const char = realstr.charCodeAt(i);
+                const binCodes = stringChunks(decToBin(char, 16), 4);
                 for (const binCode of binCodes) {
                     const numm = binToDec(binCode);
                     if (numm != 15) {
-                        output += numm.toString(10);
+                        output.push(numm.toString(10));
                     }
                 }
             }
-            return await processOutput(output);
+            return await processOutput(output.join(''));
         case 4:
             const chars = [];
-            for (const char of realstr.slice(0, strcodes.code2).split('')) {
-                chars.push(char);
+            for (let i = 0; i < realstr.slice(0, strcodes.code2).length; i++) {
+                chars.push(realstr[i]);
             }
-            for (const char of realstr.slice(strcodes.code2).split('')) {
-                const binCodes = stringChunks(decToBin(char.charCodeAt(0), 16), 4);
+            for (let i = 0; i < realstr.slice(strcodes.code2).length; i++) {
+                const binCodes = stringChunks(decToBin(realstr.charCodeAt(i), 16), 4);
                 for (const binCode of binCodes) {
                     if (binCode != '1111') {
                         const numm = binToDec(binCode);
-                        output += chars[numm];
+                        output.push(chars[numm]);
                     }
                 }
             }
-            return await processOutput(output);
+            return await processOutput(output.join(''));
         case 5:
             const decoded = characterEncodings(strcodes.code2, realstr);
             if (decoded) {
@@ -643,9 +646,9 @@ export async function decompress(str, stringify = false) {
             } else throw new Error(prefix+'Invalid compressed string');
         case 7:
             const splitter = freqMapSplitters[binToDec(decToBin(strcodes.code2).slice(1))];
-            output = freqMap.decompress(realstr, splitter);
-            if (parseInt(decToBin(strcodes.code2).slice(0,1)) == 1) output = output.slice(0,-1);
-            return await processOutput(output);
+            let output_ = freqMap.decompress(realstr, splitter);
+            if (parseInt(decToBin(strcodes.code2).slice(0,1)) == 1) output_ = output_.slice(0,-1);
+            return await processOutput(output_);
         case 8: {
             let bytes = [];
             for (const ch of realstr) {
@@ -654,10 +657,11 @@ export async function decompress(str, stringify = false) {
             }
             if (strcodes.sequences) bytes.pop();
 
-            let out = '';
+            let out = [];
             for (const b of bytes) {
-                out += String.fromCharCode(b);
+                out.push(String.fromCharCode(b));
             }
+            out = out.join('');
 
             /* percent restore if needed */
             if (strcodes.code2 & 1) {
@@ -678,7 +682,6 @@ export async function decompress(str, stringify = false) {
         case 9: {
             let idx = 0;
             const segCount = strcodes.code2 < 15 ? strcodes.code2 + 2 : realstr.charCodeAt(idx++) + 2;
-            let out = '';
 
             for (let i = 0; i < segCount; i++) {
                 const len = realstr.charCodeAt(idx++);
@@ -688,11 +691,11 @@ export async function decompress(str, stringify = false) {
                     segmentCompressed, true
                 )).slice(0, len);
 
-                out += seg;
+                output.push(seg);
                 idx += (await compress(seg, {segmentation: false, justc: strcodes.repeatAfter, recursivecompression: strcodes.sequences})).length;
             }
 
-            return await processOutput(out);}
+            return await processOutput(output.join(''));}
         case 10:
             const sliceChar = strcodes.code2 == 15;
             const repeatCount = sliceChar ? realstr.charCodeAt(0) + 15 : strcodes.code2;
@@ -701,15 +704,15 @@ export async function decompress(str, stringify = false) {
         case 11: {
             const base = 0x1F300;
 
-            let bits = '';
+            let bits = [];
 
             for (let i = 0; i < realstr.length; i++) {
                 const code = realstr.charCodeAt(i);
-                bits += code.toString(2).padStart(16, '0');
+                bits.push(code.toString(2).padStart(16, '0'));
             }
+            bits = bits.join('');
 
             let pos = 0;
-            let result = '';
             
             while (pos + 3 <= bits.length) {
                 const length = parseInt(bits.slice(pos, pos + 3), 2);
@@ -719,20 +722,20 @@ export async function decompress(str, stringify = false) {
 
                 if (pos + (length * 11) > bits.length) break;
 
-                let cluster = '';
+                const cluster = [];
 
                 for (let i = 0; i < length; i++) {
                     const delta = parseInt(bits.slice(pos, pos + 11), 2);
                     pos += 11;
 
                     const cp = base + delta;
-                    cluster += String.fromCodePoint(cp);
+                    cluster.push(String.fromCodePoint(cp));
                 }
 
-                result += cluster;
+                output.push(cluster.join(''));
             }
 
-            return checkOutput(result);
+            return checkOutput(output.join(''));
         }
         case 12:
             return checkOutput(await decompress(
@@ -861,14 +864,15 @@ export async function DIP(context) {
         .replaceAll('13', 'D')
         .replaceAll('14', 'E');
     const binOut = [];
-    for (const character of inputt.split('')) {
+    for (let i = 0; i < inputt.length; i++) {
+        const character = inputt[i];
         if (/\d/.test(character)) {
             binOut.push(decToBin(parseInt(character), 4));
         } else {
             binOut.push(decToBin(convertNums[character], 4));
         }
     };
-    let [output, RLE, sequences] = ['', false, false];
+    let [output, RLE, sequences] = [[], false, false];
     function binPadStart(bin) {
         if (bin.length < 16) {
             const numm = 4 - stringChunks(bin, 4).length;
@@ -876,8 +880,9 @@ export async function DIP(context) {
         } else return bin;
     }
     for (const character of chunkArray(binOut, 4)) {
-        output += String.fromCharCode(binToDec(binPadStart(character.join(''))));
+        output.push(String.fromCharCode(binToDec(binPadStart(character.join('')))));
     }
+    output = output.join('');
     [output, RLE, sequences] = processOutput(output);
     output = charCode(cryptCharCode(3, false, isNum, RLE, -1, 0, sequences, code3)) + output;
     if (!(await validate(output, originalInput))) return null;
@@ -914,9 +919,9 @@ export async function TDCCC(context) {
     if (!(strdata.max === 2 && strdata.min === 2)) return null;
 
     let chars = strdata.output;
-    let [output, repeatAfter, seq] = ['', false, false];
+    let [output, repeatAfter, seq] = [[], false, false];
     function addChar(codee) {
-        output += String.fromCharCode(codee);
+        output.push(String.fromCharCode(codee));
     }
     function sliceChars(numbr) {
         chars = chars.slice(numbr);
@@ -945,6 +950,7 @@ export async function TDCCC(context) {
             }
         }
     }
+    output = output.join('');
     [output, repeatAfter, seq] = processOutput(output);
     const res = charCode(cryptCharCode(1, false, repeatBefore, repeatAfter, beginId, 0, seq, code3)) + output;
     if (!(await validate(res, originalInput))) return null;
@@ -960,12 +966,13 @@ export async function TBCCC(context) {
     const strdata = stringCodes(str);
     if (strdata.maxCharCode >= 256) return null;
 
-    let [out, repeatAfter, seq] = ['', false, false];
+    let [out, repeatAfter, seq] = [[], false, false];
     for (const pair of stringChunks(str, 2)) {
-        let bin = '';
-        for (const c of pair) bin += decToBin(c.charCodeAt(0), 8);
-        out += String.fromCharCode(binToDec(bin));
+        const bin = [];
+        for (const c of pair) bin.push(decToBin(c.charCodeAt(0), 8));
+        out.push(String.fromCharCode(binToDec(bin.join(''))));
     }
+    out = out.join('');
 
     [out, repeatAfter, seq] = processOutput(out);
     const res = charCode(cryptCharCode(2, false, repeatBefore, repeatAfter, beginId, 0, seq, code3)) + out;
@@ -980,7 +987,6 @@ export async function CE(context) {
     const {str, code3, repeatBefore, beginId, originalInput} = context;
 
     const characterEncodings = new _JSSC.use();
-    const stringArray = str.split('');
     let useCharacterEncoding;
     let charEncodingID = NaN;
     
@@ -989,8 +995,8 @@ export async function CE(context) {
         table.length = 256;
         const arrayy = Array.from(table);
         let usethisone = true;
-        for (const character of stringArray) {
-            if (!arrayy.includes(character)) {
+        for (let i = 0; i < str.length; i++) {
+            if (!arrayy.includes(str[i])) {
                 usethisone = false;
                 break;
             }
@@ -1009,16 +1015,17 @@ export async function CE(context) {
         }
         const binaryCharCodes = [];
         const convertCharCodes = [];
-        for (const character of stringArray) {
-            binaryCharCodes.push(decToBin(parseInt(reverseCharacterEncoding[character]), 8));
+        for (let i = 0; i < str.length; i++) {
+            binaryCharCodes.push(decToBin(parseInt(reverseCharacterEncoding[str[i]]), 8));
         }
         for (const binCharCodes of chunkArray(binaryCharCodes, 2)) {
             convertCharCodes.push(binCharCodes.join('').padStart(16, '0'));
         }
-        let [outputStr, repeatAfter, seq] = ['', false, false];
+        let [outputStr, repeatAfter, seq] = [[], false, false];
         for (const characterCode of convertCharCodes) {
-            outputStr += String.fromCharCode(binToDec(characterCode))
+            outputStr.push(String.fromCharCode(binToDec(characterCode)));
         }
+        outputStr = outputStr.join('');
 
         [outputStr, repeatAfter, seq] = processOutput(outputStr);
         outputStr = charCode(cryptCharCode(5, false, repeatBefore, repeatAfter, beginId, charEncodingID, seq, code3)) + outputStr;
@@ -1036,25 +1043,25 @@ export async function AE(context) {
     const uniq = [...new Set(str.split('').map(c => c.charCodeAt(0)))];
     if (uniq.length >= 16) return null;
 
-    let out = uniq.map(c => String.fromCharCode(c)).join('');
+    let out = [uniq.map(c => String.fromCharCode(c)).join('')];
     let buf = [];
     let [repeatAfter, seq] = [false, false];
 
     for (const c of str) {
         buf.push(uniq.indexOf(c.charCodeAt(0)));
         if (buf.length === 4) {
-            out += String.fromCharCode(binToDec(buf.map(n => decToBin(n, 4)).join('')));
+            out.push(String.fromCharCode(binToDec(buf.map(n => decToBin(n, 4)).join(''))));
             buf = [];
         }
     }
 
     if (buf.length) {
-        out += String.fromCharCode(
+        out.push(String.fromCharCode(
             binToDec(buf.map(n => decToBin(n, 4)).join('').padStart(16, '1'))
-        );
+        ));
     }
 
-    [out, repeatAfter, seq] = processOutput(out);
+    [out, repeatAfter, seq] = processOutput(out.join(''));
     const res = charCode(cryptCharCode(4, false, repeatBefore, repeatAfter, beginId, uniq.length, seq, code3)) + out;
     if (!(await validate(res, originalInput))) return null;
     return res;
@@ -1129,11 +1136,11 @@ export async function URL_(context) {
     if (odd) bytes.push(0);
 
     /* bytes to UTF16 */
-    let out = '';
+    let out = [];
     for (let i = 0; i < bytes.length; i += 2) {
-        out += String.fromCharCode(
+        out.push(String.fromCharCode(
             (bytes[i] << 8) | (bytes[i + 1] ?? 0)
-        );
+        ));
     }
 
     let code2 =
@@ -1143,7 +1150,7 @@ export async function URL_(context) {
         (hasFragment ? 8 : 0);
 
     let repeatAfter = false;
-    [out, repeatAfter,] = processOutput(out, true);
+    [out, repeatAfter,] = processOutput(out.join(''), true);
 
     const res =
         charCode(
@@ -1173,7 +1180,7 @@ export async function S(context) {
 
     if (segs.length < 2) return null;
 
-    let out = segs.length - 2 < 15 ? '' : String.fromCharCode(segs.length - 2);
+    const out = [segs.length - 2 < 15 ? '' : String.fromCharCode(segs.length - 2)];
 
     for (const seg of segs) {
         const segOpts = {
@@ -1183,8 +1190,8 @@ export async function S(context) {
         }
         const compressed = await compress(seg, segOpts);
 
-        out += String.fromCharCode(seg.length);
-        out += compressed;
+        out.push(String.fromCharCode(seg.length));
+        out.push(compressed);
     }
 
     const res =
@@ -1199,7 +1206,7 @@ export async function S(context) {
                 opts.recursivecompression,
                 code3
             )
-        ) + out;
+        ) + out.join('');
 
     if (!(await validate(res, originalInput))) return null;
     return res;
@@ -1255,22 +1262,22 @@ export async function EP(context) {
     if (!graphemes.every(isEmojiCluster)) return null;
 
     const base = 0x1F300;
-    let bits = '';
+    const bits = [];
 
     for (const g of graphemes) {
         const cps = Array.from(g).map(c => c.codePointAt(0));
-        bits += decToBin(cps.length, 3);
+        bits.push(decToBin(cps.length, 3));
         for (const cp of cps) {
-            bits += decToBin(cp - base, 11);
+            bits.push(decToBin(cp - base, 11));
         }
     }
 
-    let out = '';
-    for (const chunk of stringChunks(bits, 16)) {
-        out += String.fromCharCode(binToDec(chunk.padEnd(16,'0')));
+    const out = [];
+    for (const chunk of stringChunks(bits.join(''), 16)) {
+        out.push(String.fromCharCode(binToDec(chunk.padEnd(16,'0'))));
     }
 
-    const [outPostprocessed, repeatAfter, seq] = processOutput(out);
+    const [outPostprocessed, repeatAfter, seq] = processOutput(out.join(''));
 
     function hchar(ra = false, sq = false) {
         return cryptCharCode(11, false, repeatBefore, ra, beginId, 0, sq, code3);

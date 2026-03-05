@@ -4,23 +4,24 @@ export function stringCodes(str) {
     let maxCharCode = 0;
     let minCharCode = 65535;
     let min = Infinity;
-    String(str).split('').forEach(char => {
-        const code = char.charCodeAt();
+    const string = String(str);
+    for (let i = 0; i < string.length; i++) {
+        const code = string.charCodeAt(i);
         output.push(code);
         max = Math.max(max, code.toString().length);
         maxCharCode = Math.max(maxCharCode, code);
         min = Math.min(min, code.toString().length);
         minCharCode = Math.min(minCharCode, code);
-    });
+    }
     return {max, output, maxCharCode, min, minCharCode};
 }
 
 export function codesString(cds) {
-    let output = '';
+    const output = [];
     cds.forEach(code => {
-        output += String.fromCharCode(code);
+        output.push(String.fromCharCode(code));
     });
-    return output
+    return output.join('');
 }
 
 export function charCode(num) {

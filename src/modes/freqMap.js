@@ -21,7 +21,8 @@ export const freqMap = {
         let header = String.fromCharCode(topChars.length) + topChars.join('');
         
         let bytes = [];
-        for (let char of text) {
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
             if (charToIndex.has(char)) {
                 /* frequent */
                 bytes.push(charToIndex.get(char));
@@ -35,14 +36,14 @@ export const freqMap = {
         }
 
         /* to UTF16 */
-        let compressedBody = "";
+        const compressedBody = [];
         for (let i = 0; i < bytes.length; i += 2) {
             const b1 = bytes[i];
             const b2 = (i + 1 < bytes.length) ? bytes[i + 1] : 0x00;
-            compressedBody += String.fromCharCode((b1 << 8) | b2);
+            compressedBody.push(String.fromCharCode((b1 << 8) | b2));
         }
 
-        return header + splitter + compressedBody;
+        return header + splitter + compressedBody.join('');
     },
 
     decompress(compressedText, splitter = this.SPLITTER) {
@@ -65,18 +66,18 @@ export const freqMap = {
             bytes.push(code & 0xFF);
         }
 
-        let result = "";
+        const result = [];
         for (let i = 0; i < bytes.length; i++) {
             const b = bytes[i];
             if (b === this.ESCAPE_BYTE) {
                 const charCode = (bytes[i + 1] << 8) | bytes[i + 2];
-                result += String.fromCharCode(charCode);
+                result.push(String.fromCharCode(charCode));
                 i += 2;
             } else if (b < topCount) {
-                result += topChars[b];
+                result.push(topChars[b]);
             }
         }
-        return result;
+        return result.join('');
     },
 
     /**

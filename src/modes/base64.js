@@ -3,14 +3,15 @@ import { B64 } from "../../lib/third-party/convertBase.js";
 import { stringChunks, decToBin, binToDec } from "../utils.js";
 
 function packB64(numbers) {
-    let bitString = "";
+    let bitString = [];
 
     for (const num of numbers) {
         if (num < 0 || num > 63)
             throw new Error(prefix+"Base-64 Packing: Out of range!");
 
-        bitString += decToBin(num, 6);
+        bitString.push(decToBin(num, 6));
     }
+    bitString = bitString.join('');
 
     const paddedLength = Math.ceil(bitString.length / 16) * 16;
     bitString = bitString.padEnd(paddedLength, "0");
@@ -46,25 +47,25 @@ export function compressB64(str) {
 
     const { bin, len } = packB64(numbers);
 
-    let result = "";
+    const result = [];
     for (const chunk of stringChunks(bin, 16)) {
-        result += String.fromCharCode(binToDec(chunk));
+        result.push(String.fromCharCode(binToDec(chunk)));
     }
 
     return {
-        data: result,
+        data: result.join(''),
         length: len
     };
 }
 
 export function decompressB64(data, len) {
-    let bitString = "";
+    const bitString = [];
 
     for (const ch of data) {
-        bitString += decToBin(ch.charCodeAt(0), 16);
+        bitString.push(decToBin(ch.charCodeAt(0), 16));
     }
 
-    const numbers = unpackB64(bitString, len);
+    const numbers = unpackB64(bitString.join(""), len);
 
     return numbers.map(n => B64[n]).join("");
 }

@@ -79,25 +79,27 @@ export function compressSequences(str) {
     
     if (selected.length === 0) return {compressed: str, sequences: false};
 
-    let result = '';
+    let result = [];
     let pos = 0;
     
     for (const repeat of selected) {
         if (pos < repeat.start) {
-            result += str.slice(pos, repeat.start);
+            result.push(str.slice(pos, repeat.start));
         }
         
         /* sequence encoding: [marker][length][count][pattern] */
         const lengthChar = String.fromCharCode(Math.min(repeat.length, 30) + 32);
         const countChar = String.fromCharCode(Math.min(repeat.count, 65535) + 32);
-        result += SEQUENCE_MARKER + lengthChar + countChar + repeat.pattern;
+        result.push(SEQUENCE_MARKER + lengthChar + countChar + repeat.pattern);
         
         pos = repeat.end;
     }
     
     if (pos < str.length) {
-        result += str.slice(pos);
+        result.push(str.slice(pos));
     }
+
+    result = result.join('');
     
     /* check if it's worth it */
     if (result.length < str.length * 0.9) { /* at least 10% */
@@ -108,7 +110,7 @@ export function compressSequences(str) {
 }
 
 export function decompressSequences(str) {
-    let result = '';
+    const result = [];
     let i = 0;
     
     while (i < str.length) {
@@ -116,7 +118,7 @@ export function decompressSequences(str) {
             i++;
             
             if (i + 2 >= str.length) {
-                result += SEQUENCE_MARKER;
+                result.push(SEQUENCE_MARKER);
                 continue;
             }
             
@@ -125,10 +127,12 @@ export function decompressSequences(str) {
             i += 2;
             
             if (i + length > str.length) {
-                result += SEQUENCE_MARKER + 
-                            String.fromCharCode(length + 32) + 
-                            String.fromCharCode(count + 32) +
-                            str.slice(i);
+                result.push(
+                    SEQUENCE_MARKER + 
+                    String.fromCharCode(length + 32) + 
+                    String.fromCharCode(count + 32) +
+                    str.slice(i)
+                );
                 break;
             }
             
@@ -136,13 +140,13 @@ export function decompressSequences(str) {
             i += length;
             
             for (let j = 0; j < count; j++) {
-                result += pattern;
+                result.push(pattern);
             }
         } else {
-            result += str.charAt(i);
+            result.push(str.charAt(i));
             i++;
         }
     }
     
-    return result;
+    return result.join('');
 }
