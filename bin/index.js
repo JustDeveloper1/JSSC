@@ -212,8 +212,18 @@ const defaultConfig = {
     recursiveCompression: true,
     segmentation: true,
     base64IntegerEncoding: true,
+    base64Packing: true,
+    offsetEncoding: true,
+    lzstring: true,
+
+    offsetEncode: false,
+    depthLimit: 10,
+
+    stringify: true,
     
-    debug: false
+    debug: false,
+    depth: 0,
+    worker: 0,
 };
 
 function makeSemVer(major, minor) {

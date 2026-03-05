@@ -16,4 +16,5 @@ stringify = y,
 
 -- Other options
 debug = n,
-depth = 0 .
+depth = 0,
+worker = 0 .
