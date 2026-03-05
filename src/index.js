@@ -7,7 +7,10 @@ import {
     compress, decompress,
     compressToBase64, decompressFromBase64
 } from './core.js';
+import { setMaxCache, getMaxCache } from './cache.js';
 export {
     compress, decompress,
-    compressToBase64, decompressFromBase64
+    compressToBase64, decompressFromBase64,
+
+    getMaxCache, setMaxCache
 }

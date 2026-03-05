@@ -28,6 +28,7 @@ import lz from 'lz-string'; const { cLZ, dLZ } = (()=>{
     return { cLZ: compressToUTF16, dLZ: decompressFromUTF16 };
 })();
 import { runInWorkers, canUseWorkers } from './workerPool.js';
+import { validateCache, setCache } from './cache.js';
 
 function cryptCharCode(
     code, get = false,
@@ -791,12 +792,20 @@ export async function decompressFromBase64(base64, ...input) {
 }
 
 async function validate(compressed, originalInput) {
+    const cached = validateCache.get(compressed);
+    if (typeof cached == 'boolean') return cached;
+
+    let result;
+
     try {
         const dec = await decompress(compressed, true);
-        return dec === String(originalInput);
+        result = dec === String(originalInput);
     } catch {
-        return false;
+        result = false;
     }
+    
+    setCache(compressed, result);
+    return result;
 }
 const n = /^\d+$/;
 function repeatChars(txt) {
