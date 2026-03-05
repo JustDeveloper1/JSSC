@@ -16,7 +16,7 @@ import {
     LZS,
     compress,
     decompress
-} from './index.js';
+} from './core.js';
 
 const map = {
     IIE,
