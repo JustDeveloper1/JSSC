@@ -11,7 +11,7 @@ import {
     decToBin,
     binToDec,
     B64Padding
-} from './utils.js';
+} from '../lib/utils.js';
 import { freqMap, freqMapSplitters } from './modes/freqMap.js';
 import { segments, splitGraphemes } from './modes/segmentation.js';
 import { _JSSC } from './encodings.js';
@@ -81,7 +81,9 @@ function cryptCharCode(
 /* 11: Emoji Packing                    */ /* 12      */
 /* 12: Base-64 Integer Encoding         */ /* 13      */
 /* 13: Base-64 Packing                  */ /* 14      */
-/* 14 - 29: Reserved                    */ /* --      */
+/* 14: Large                            */ /* 17      */
+/* 15 - 28: Reserved                    */ /* --      */
+/* 29: lzstring                         */ /* 16      */
 /* 30: Offset Encoding                  */ /* 15      */
 /* 31: Recursive Compression            */ /* 11      */
 
@@ -747,6 +749,14 @@ export async function decompress(str, stringify = false) {
             let slice = len == 16;
             if (slice) len = realstr.slice(0,1).charCodeAt(0) + 16;
             return await processOutput(decompressB64(slice ? realstr.slice(1) : realstr, len));
+        case 14:
+            let i = 0;
+            while (i < realstr.length) {
+                const length = realstr.charCodeAt(i) + i;
+                i++;
+                output.push(await decompress(realstr.slice(i, length)));
+            }
+            return checkOutput(output.join(''));
         case 29:
             return await processOutput(dLZ(realstr));
         case 30:
@@ -781,13 +791,33 @@ export async function compressToBase64(...input) {
 
     return B64Padding(encode(compressed));
 }
-
-export async function decompressFromBase64(base64, ...input) {
-    const decompressed = await decompress(decode(base64.replace(/=+$/, '')), ...input);
+export async function decompressFromBase64(base64, ...params) {
+    const decompressed = await decompress(decode(base64.replace(/=+$/, '')), ...params);
 
     if (decompressed instanceof JSSC) throw new Error(prefix+'Invalid options input.');
 
     return decompressed;
+}
+
+export async function compressLarge(input, ...params) {
+    const LENGTH = 1024;
+    const result = [charCode(cryptCharCode(14, false))];
+    
+    for (let i = 0; i < input.length; i += LENGTH) {
+        console.log(i)
+        const chunk = input.slice(i, i + LENGTH);
+        const compressed = await compress(chunk, ...params);
+        result.push(String.fromCharCode(compressed.length), compressed);
+    }
+
+    return result.join('');
+}
+export async function compressLargeToBase64(...input) {
+    const compressed = await compress(...input);
+
+    if (compressed instanceof JSSC) throw new Error(prefix+'Invalid options input.');
+
+    return B64Padding(encode(compressed));
 }
 
 async function validate(compressed, originalInput) {

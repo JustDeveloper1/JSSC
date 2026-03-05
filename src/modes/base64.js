@@ -1,6 +1,6 @@
 import { prefix } from "../../lib/meta.js";
 import { B64 } from "../../lib/third-party/convertBase.js";
-import { stringChunks, decToBin, binToDec } from "../utils.js";
+import { stringChunks, decToBin, binToDec } from "../../lib/utils.js";
 
 function packB64(numbers) {
     let bitString = [];

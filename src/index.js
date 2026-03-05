@@ -4,13 +4,14 @@ if ((String.fromCharCode(65536).charCodeAt(0) === 65536) || !(String.fromCharCod
 }
 
 import { 
-    compress, decompress,
-    compressToBase64, decompressFromBase64
+    compress, decompress, compressLarge,
+    compressToBase64, compressLargeToBase64, decompressFromBase64
 } from './core.js';
 import { setMaxCache, getMaxCache } from './cache.js';
+
 export {
-    compress, decompress,
-    compressToBase64, decompressFromBase64,
+    compress, decompress, compressLarge,
+    compressToBase64, compressLargeToBase64, decompressFromBase64,
 
     getMaxCache, setMaxCache
 }

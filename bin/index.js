@@ -2,17 +2,17 @@
 
 import fs from "fs";
 import path from "path";
-import { compress, decompress } from "../src/index.js";
+import { compress, decompress, compressLargeToBase64, compressToBase64, decompressFromBase64 } from "../src/index.js";
 import { prefix, version, format, name__ } from "../lib/meta.js";
 import { fileprefix, semver } from "../lib/meta.bin.js";
 import { SemVer, gt } from "semver";
 import JUSTC from "justc";
-import { concat } from 'uint8arrays/concat';
 import crc32 from 'crc-32';
 import { convertBase } from "../lib/third-party/convertBase.js";
 import { fileURLToPath } from "url";
 import { execSync, spawn } from "child_process";
 import { compress as compressUI, message } from "./windows/import.cjs";
+import { toFile, fromFile } from "./format.js";
 
 const args = process.argv.slice(2);
 
@@ -323,7 +323,7 @@ function findEmptyDirs(dir) {
     config = config[0];
     if (config == '') config = defaultConfig; 
     else {
-        config = fs.readFileSync(config, { encoding: 'utf8' });
+        config = fs.readFileSync(config).toString('utf8');
         config = {
             ...defaultConfig,
             ...await JUSTC.execute(config)
@@ -393,37 +393,25 @@ function findEmptyDirs(dir) {
         const files = {};
         for (const file of input) {
             files[
-                await compress(path.relative(currentdir, file), config)
-            ] = await compress(
+                (await compressToBase64(path.relative(currentdir, file), config)).replace(/=+$/, '')
+            ] = (await compressLargeToBase64(
                 fs.readFileSync(file, { encoding: 'utf8' }), 
                 config
-            );
+            )).replace(/=+$/, '');
         }
+        const dirs = [];
         for (const dir of findEmptyDirs(inp)) {
-            files[await compress(path.relative(currentdir, dir), config)] = 0;
+            dirs.push((await compressToBase64(path.relative(currentdir, dir)).replace(/=+$/, ''), config));
         }
-
-        const out = [
-            semver.major,
-            semver.minor,
-            encodeCode(isDir, isFile),
-            files,
-            await compress(extn)
-        ];
-        const checksum = crc32.str(JSON.stringify(out));
-
-        const outputArr = [
-            ...out,
-            convertBase(checksum.toString(10), 10, 64)
-        ];
-        const result = concat([fileprefix,
-            await compressEncoded(
-                new TextEncoder().encode(JSON.stringify(outputArr).slice(1,-1))
-            )
-        ]);
+        
         fs.writeFileSync(output[0] + (
             addFormat ? format : ''
-        ), result);
+        ), await toFile(
+            isDir,
+            extn == '' ? null : (await compressToBase64(extn)).replace(/=+$/, ''),
+            files,
+            dirs
+        ));
         exit(0);
     } else {
         if (print && isFile) {
@@ -436,65 +424,46 @@ function findEmptyDirs(dir) {
         const raw = isFile ? fs.readFileSync(input[0]) : input[0];
 
         if (str) {
-            const decompressed = await decompress(raw);
-            if (output[0] != '') {
-                fs.mkdirSync(path.dirname(output[0]), { recursive: true });
-                fs.writeFileSync(output[0], decompressed, { encoding: 'utf8' });
+            try {
+                const decompressed = await decompress(raw);
+                if (output[0] != '') {
+                    fs.mkdirSync(path.dirname(output[0]), { recursive: true });
+                    fs.writeFileSync(output[0], decompressed, { encoding: 'utf8' });
+                }
+                if (print) {
+                    console.log(decompressed);
+                }
+                exit(0);
+            } catch (err) {
+                const e = prefix + 'Input string was corrupted: ' + err;
+                console.error(e);
+                exit(1, e);
             }
-            if (print) {
-                console.log(decompressed);
+        }
+
+        try {
+            const {isDir, extn, files, dirs} = await fromFile(raw);
+
+            for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].length - b[0].length)) {
+                const fullPath = path.format(
+                    path.parse(
+                        (isDir
+                            ? path.join(output[0], await decompressFromBase64(filePath))
+                            : output[0]
+                        ) + (!isDir ? await decompressFromBase64(extn) : ''))
+                );
+
+                fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+                fs.writeFileSync(fullPath, await decompressFromBase64(content), { encoding: 'utf8' });
+            };
+            for (let i = 0; i < dirs.length; i++) {
+                fs.mkdirSync(await decompressFromBase64(dirs[i]), { recursive: true });
             }
             exit(0);
-        }
-        
-        const type = new TextDecoder().decode(raw.subarray(0, fileprefix.length));
-        if (type != new TextDecoder().decode(fileprefix)) {
-            const e = 'Input file type is not JSSC1. (The file might have been corrupted.)';
-            console.log(prefix + e);
+        } catch (err) {
+            const e = prefix + err;
+            console.error(e, '\n', err.stack);
             exit(1, e);
         }
-
-        const data = new TextDecoder().decode(await decompressEncoded(raw.subarray(fileprefix.length)));
-        const arr = JSON.parse('[' + data + ']');
-
-        const ver = makeSemVer(arr[0], arr[1]);
-        if (gt(ver, makeSemVer(semver.major, semver.minor))) {
-            const e = 'Input file was compressed with a higher JSSC version.';
-            console.log(prefix + e);
-            exit(1, e);
-        }
-        
-        const {isDir, isFile_} = codes[arr[2]];
-        const extn = await decompress(arr[4]);
-
-        const checksum = arr[5];
-        const checksumArr = arr.slice(0,5);
-        if (convertBase(crc32.str(JSON.stringify(checksumArr)).toString(10), 10, 64) != checksum) {
-            const e = 'Input file was corrupted.';
-            console.log(prefix + e);
-            exit(1, e);
-        }
-
-        const files = {};
-
-        for (const [key, value] of Object.entries(arr[3])) {
-            files[await decompress(key)] = value == 0 ? 0 : await decompress(value);
-        }
-
-        for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].length - b[0].length)) {
-            const fullPath = path.format(path.parse((isDir
-                ? path.join(output[0], filePath)
-                : output[0])
-                + (!isDir ? extn : '')));
-
-            if (content == 0) {
-                fs.mkdirSync(fullPath, { recursive: true });
-                continue;
-            }
-
-            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-            fs.writeFileSync(fullPath, content, { encoding: 'utf8' });
-        }
-        exit(0);
     }
 })(input, output, config);
