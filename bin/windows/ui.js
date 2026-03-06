@@ -83,7 +83,7 @@ export function compress(title, name, icon, config) {
             const result = JSON.parse(stdout.trim());
             return [true, result];
         }
-    } catch (e) {
+    } catch {
         return [false, null];
     }
 }

@@ -40,6 +40,10 @@ function Get-SystemIcon {
     }
 }
 
+$Icon = Join-Path $PSScriptRoot "..\..\..\..\jssc.ico"
+$Icon = [System.IO.Path]::GetFullPath($Icon)
+Add-Type -Path "$PSScriptRoot\process.cs"
+
 $Form                            = New-Object system.Windows.Forms.Form
 $Form.ClientSize                 = New-Object System.Drawing.Point(440,400)
 $Form.text                       = $Title
@@ -48,6 +52,10 @@ $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false
+if (Test-Path $Icon) {
+    [Taskbar]::SetCurrentProcessExplicitAppUserModelID("JSSC.Compress") | Out-Null
+    $Form.Icon = New-Object System.Drawing.Icon($Icon)
+}
 
 $Form.Add_Paint({
     param($sender, $e)
