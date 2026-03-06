@@ -17,7 +17,7 @@ function isMemHigh() {
 
 function clear(warn = true) {
     validateCache.clear();
-    if (warn) console.warn(prefix+'Memory high, cache cleared');
+    if (warn && typeof process !== 'undefined') console.warn(prefix+'Memory high, cache cleared');
 }
 
 export function setCache(key, value) {
