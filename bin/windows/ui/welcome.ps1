@@ -10,7 +10,6 @@ param (
 )
 
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-Add-Type -Path "$PSScriptRoot\blur.cs"
 
 $back = Get-Content -Path "$PSScriptRoot\roundCorners.cs" -Raw
 $Win32 = Add-Type -MemberDefinition $back -Name "Win32" -PassThru
@@ -21,7 +20,6 @@ $Form                            = New-Object system.Windows.Forms.Form
 $Form.ClientSize                 = New-Object System.Drawing.Point(398,138)
 $Form.text                       = $Title
 $Form.TopMost                    = $false
-$Form.Opacity = 0.95
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
@@ -36,21 +34,6 @@ $Form.Add_Paint({
     $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $c1, $c2, 135)
     $e.Graphics.FillRectangle($brush, $rect)
     $brush.Dispose()
-})
-$Form.Add_Shown({
-    $policy = New-Object BlurAPI+AccentPolicy
-    $policy.AccentState = [BlurAPI+AccentState]::ACCENT_ENABLE_BLURBEHIND
-    
-    $data = New-Object BlurAPI+WindowCompositionAttributeData
-    $data.Attribute = [BlurAPI+WindowCompositionAttribute]::WCA_ACCENT_POLICY
-    $data.SizeOfData = [Marshal]::SizeOf($policy)
-    
-    $policyPtr = [Marshal]::AllocHGlobal($data.SizeOfData)
-    [Marshal]::StructureToPtr($policy, $policyPtr, $false)
-    $data.Data = $policyPtr
-    
-    [BlurAPI]::SetWindowCompositionAttribute($Form.Handle, [ref]$data)
-    [Marshal]::FreeHGlobal($policyPtr)
 })
 
 $Button1                         = New-Object system.Windows.Forms.Button

@@ -25,7 +25,6 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName WindowsFormsIntegration
 
-Add-Type -Path "$PSScriptRoot\blur.cs"
 $back = Get-Content -Path "$PSScriptRoot\roundCorners.cs" -Raw
 $Win32 = Add-Type -MemberDefinition $back -Name "Win32" -PassThru
 
@@ -58,19 +57,6 @@ $Form.Add_Paint({
     $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $c1, $c2, 135)
     $e.Graphics.FillRectangle($brush, $rect)
     $brush.Dispose()
-})
-
-$Form.Add_Shown({
-    $policy = New-Object BlurAPI+AccentPolicy
-    $policy.AccentState = [BlurAPI+AccentState]::ACCENT_ENABLE_BLURBEHIND
-    $data = New-Object BlurAPI+WindowCompositionAttributeData
-    $data.Attribute = [BlurAPI+WindowCompositionAttribute]::WCA_ACCENT_POLICY
-    $data.SizeOfData = [System.Runtime.InteropServices.Marshal]::SizeOf($policy)
-    $policyPtr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($data.SizeOfData)
-    [System.Runtime.InteropServices.Marshal]::StructureToPtr($policy, $policyPtr, $false)
-    $data.Data = $policyPtr
-    [BlurAPI]::SetWindowCompositionAttribute($Form.Handle, [ref]$data)
-    [System.Runtime.InteropServices.Marshal]::FreeHGlobal($policyPtr)
 })
 
 $PictureBox1 = New-Object system.Windows.Forms.PictureBox
