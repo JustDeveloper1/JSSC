@@ -81,7 +81,7 @@ function cryptCharCode(
 /* 11: Emoji Packing                    */ /* 12      */
 /* 12: Base-64 Integer Encoding         */ /* 13      */
 /* 13: Base-64 Packing                  */ /* 14      */
-/* 14: Large                            */ /* 17      */
+/* 14: Segmentation                     */ /* 17      */
 /* 15 - 28: Reserved                    */ /* --      */
 /* 29: lzstring                         */ /* 16      */
 /* 30: Offset Encoding                  */ /* 15      */
