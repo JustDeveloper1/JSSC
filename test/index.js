@@ -1,5 +1,5 @@
-const JSSC = require('../index.js');
-const JSSCmin = require('../index.min.js');
+import { compress, decompress } from '../index.js';
+import { compress as _compress, decompress as _decompress } from '../index.min.js';
 
 function stringChunks(str, num) {
     const output = [];
@@ -64,8 +64,8 @@ const modes = [
 async function test(text, name) {
     console.info('\n\n\n\n\nRunning compress tests (', name, ') ...');
 
-    const a = await JSSC.compress(text);
-    const b = await JSSC.decompress(a);
+    const a = await compress(text);
+    const b = await decompress(a);
     const c = a.charCodeAt(0).toString(2).padStart(16, '0');
 
     const toString = typeof text != 'object' ? String(text) : JSON.stringify(text);
@@ -85,8 +85,8 @@ async function test(text, name) {
         [11], [0,4], [5,8]
     ]) code.push(parseInt(c.slice(x,y), 2));
 
-    const d = await JSSCmin.compress(text);
-    const e = await JSSCmin.decompress(d);
+    const d = await _compress(text);
+    const e = await _decompress(d);
     
     const success = [
         text == b, 
