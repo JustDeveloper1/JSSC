@@ -25,7 +25,7 @@ export async function canUseWorkers() {
     return !!WorkerImpl;
 }
 
-export async function runInWorkers(candidateNames, context) {
+export async function runInWorkers(candidateNames, context, workerURL) {
     await init();
 
     const queue = [...candidateNames];
@@ -43,7 +43,7 @@ export async function runInWorkers(candidateNames, context) {
                 const name = queue.shift();
 
                 const worker = new WorkerImpl(
-                    new URL('../src/candidateWorker.js', import.meta.url),
+                    new URL(workerURL, import.meta.url),
                     { type: 'module' }
                 );
 
@@ -84,3 +84,6 @@ export async function runInWorkers(candidateNames, context) {
         next();
     });
 }
+
+export const workerURL = './worker.js';
+export const workerMin = './worker.min.js';

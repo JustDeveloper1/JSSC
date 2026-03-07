@@ -10,6 +10,8 @@ offsetEncoding = y,
 lzstring = y,
 offsetEncode = n,
 depthLimit = 10,
+workerlimit = 2,
+minifiedWorker = n,
 
 -- Decompress options
 stringify = y,

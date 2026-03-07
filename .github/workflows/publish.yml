@@ -24,21 +24,8 @@ jobs:
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm install
-
-      - run: mkdir dist && node src/emoji.js && rm -f emoji.js
-
-      - name: Build
-        run: npx rollup -c
-
-      - name: Minify
-        run: npx terser dist/jssc.js -c -m "reserved=['compress','decompress','JSSC','jssc']" --format "ascii_only=true" -o index.min.js
-
-      - run: cp dist/jssc.js index.js
-      - run: bash src/prefix.sh
-
-      - name: Run tests
-        run: npm test
+          
+      - run: bash src/build.sh
 
       - name: Publish
         run: npm publish --access public

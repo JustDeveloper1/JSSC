@@ -214,6 +214,8 @@ const defaultConfig = {
 
     offsetEncode: false,
     depthLimit: 10,
+    workerlimit: 2,
+    minifiedWorker: false,
 
     stringify: true,
     
@@ -344,8 +346,10 @@ function findEmptyDirs(dir) {
 
         if (windows) WinUIWait = winUIWait('Compressing "' + path.parse(inp).name + '"...');
 
+        config.stringify = undefined;
+
         if (str) {
-            const compressed = await compress(input[0]);
+            const compressed = await compress(input[0], config);
             if (output[0] != '') {
                 fs.mkdirSync(path.dirname(output[0]), { recursive: true });
                 fs.writeFileSync(output[0], compressed, { encoding: 'utf8' });

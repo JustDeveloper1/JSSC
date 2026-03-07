@@ -27,7 +27,7 @@ import lz from 'lz-string'; const { cLZ, dLZ } = (()=>{
     const { compressToUTF16, decompressFromUTF16 } = lz;
     return { cLZ: compressToUTF16, dLZ: decompressFromUTF16 };
 })();
-import { runInWorkers, canUseWorkers } from './workerPool.js';
+import { runInWorkers, canUseWorkers, workerURL, workerMin } from './useWorker.js';
 import { validateCache, setCache } from './cache.js';
 
 function cryptCharCode(
@@ -229,6 +229,7 @@ export async function compress(input, options) {
         lzstring: true,
         
         offsetencode: false,
+        minifiedworker: true,
         depthlimit: 10,
         workerlimit: 2,
         debug: false,
@@ -388,7 +389,7 @@ export async function compress(input, options) {
         LZS,
     ];
     if (!(opts.worker > opts.workerlimit) && originalInput.length > 64 && await canUseWorkers()) {
-        results = await runInWorkers(candidates.map(fn => fn.name), context);
+        results = await runInWorkers(candidates.map(fn => fn.name), context, opts.minifiedworker ? workerMin : workerURL);
     } else {
         results = await Promise.all(candidates.map(fn => safeTry(async () => await fn(context))));
     }

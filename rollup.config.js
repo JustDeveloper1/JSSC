@@ -4,33 +4,52 @@ import commonjs from '@rollup/plugin-commonjs';
 
 import { name__ } from './lib/meta.js';
 
-export default {
-    input: 'src/index.js',
-    plugins: [
-        resolve(),
-        json(),
-        commonjs()
-    ],
-    output: [
-        {
-            file: 'dist/jssc.mjs',
-            format: 'es'
-        },
-        {
-            file: 'dist/jssc.cjs',
-            format: 'cjs',
-            exports: 'named'
-        },
-        {
-            file: 'dist/jssc.js',
-            format: 'umd',
-            name: name__,
-            globals: {
-                justc: "JUSTC"
+export default [
+    {
+        input: 'src/index.js',
+        plugins: [
+            resolve(),
+            json(),
+            commonjs()
+        ],
+        output: [
+            {
+                file: 'dist/jssc.mjs',
+                format: 'es'
+            },
+            {
+                file: 'dist/jssc.cjs',
+                format: 'cjs',
+                exports: 'named'
+            },
+            {
+                file: 'dist/jssc.js',
+                format: 'umd',
+                name: name__,
+                globals: {
+                    justc: "JUSTC"
+                }
             }
-        }
-    ],
-    external: [
-        'justc'
-    ]
-}
+        ],
+        external: [
+            'justc'
+        ]
+    },
+    {
+        input: 'src/worker.js',
+        plugins: [
+            resolve({ preferBuiltins: true }),
+            json(),
+            commonjs()
+        ],
+        output: {
+            file: 'dist/worker.js',
+            format: 'es',
+            inlineDynamicImports: true
+        },
+        external: [
+            'justc',
+            'node:worker_threads'
+        ]
+    }
+]
