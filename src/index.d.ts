@@ -216,26 +216,20 @@ export function decompressFromBase64(str: string, options?: decompressOptions): 
  */
 function clearCache(): void;
 
-/**
- * JavaScript String Compressor
- * @license MIT
- * @copyright (c) 2025-2026 JustDeveloper <<https://justdeveloper.is-a.dev>>
- * @since 1.0.0
- */
-declare const JSSC: {
-    compress: typeof compress;
-    decompress: typeof decompress;
-    compressToBase64: typeof compressToBase64;
-    compressLarge: typeof compressLarge;
-    compressLargeToBase64: typeof compressLargeToBase64;
-    decompressFromBase64: typeof decompressFromBase64;
-    cache: {
-        max: number;
-        readonly clear: typeof clearCache;
-        readonly size: number;
-    };
-    version: string;
-    [Symbol.toStringTag]: 'JSSC';
+const cache: {
+    max: number;
+    readonly clear: typeof clearCache;
+    readonly size: number;
 };
+const version: string,
 
-export default JSSC;
+export {
+    compress,
+    decompress,
+    compressToBase64,
+    compressLarge,
+    compressLargeToBase64,
+    decompressFromBase64,
+    cache,
+    version,
+};
