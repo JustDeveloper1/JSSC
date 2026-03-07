@@ -212,7 +212,7 @@ async function validateOffsetEncoding(string, inp, group) {
 /**
  * **JavaScript String Compressor - compress function.**
  * @param {string|object|number} input string
- * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean, offsetEncoding?: boolean, offsetEncode?: boolean, debug?: boolean}} [options]
+ * @param {{segmentation?: boolean, recursiveCompression?: boolean, JUSTC?: boolean, base64IntegerEncoding?: boolean, base64Packing?: boolean, offsetEncoding?: boolean, lzstring?: boolean, offsetEncode?: boolean, minifiedworker?: boolean, depthLimit?: number, workerLimit?: number, debug?: boolean}} [options]
  * @returns {Promise<string>} Compressed string
  * @example await compress('Hello, World!');
  * @since 1.0.0
@@ -496,7 +496,7 @@ function offsetDecoding(str, group) {
 /**
  * **JavaScript String Compressor - decompress function.**
  * @param {string} str Compressed string
- * @param {boolean?} [stringify] Return only string in any way
+ * @param {boolean | {stringify?: boolean, debug?: boolean}} [stringify] Return only string in any way
  * @returns {Promise<string|object|number>} Decompressed string/object/integer
  * @since 1.0.0
  */
