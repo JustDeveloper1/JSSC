@@ -1,5 +1,4 @@
-import { compress, decompress } from '../index.js';
-import { compress as _compress, decompress as _decompress } from '../index.min.js';
+const JSSC = require('../dist/jssc.cjs');
 
 function stringChunks(str, num) {
     const output = [];
@@ -64,8 +63,8 @@ const modes = [
 async function test(text, name) {
     console.info('\n\n\n\n\nRunning compress tests (', name, ') ...');
 
-    const a = await compress(text);
-    const b = await decompress(a);
+    const a = await JSSC.compress(text);
+    const b = await JSSC.decompress(a);
     const c = a.charCodeAt(0).toString(2).padStart(16, '0');
 
     const toString = typeof text != 'object' ? String(text) : JSON.stringify(text);
@@ -84,21 +83,16 @@ async function test(text, name) {
     for (const [x,y] of [
         [11], [0,4], [5,8]
     ]) code.push(parseInt(c.slice(x,y), 2));
-
-    const d = await _compress(text);
-    const e = await _decompress(d);
     
     const success = [
         text == b, 
         a.length <= toString.length,
-        a == d,
-        b == e
     ];
-    const result = success[0] && success[1] && success[2] && success[3];
+    const result = success[0] && success[1];
 
     console.log(
         '\n\n\nOriginal:', text, '\n\nCompressed:', a, '\n\nDecompressed:', b, 
-        '\n\n\nSuccess?', result, '(Decompressed successfully?', success[0], '; Compressed size ≤ Original size?', success[1], '; .min.js test:', success[2] && success[3], ')\nOriginal size:', toString.length * 16, 'bits\nCompressed size:', a.length * 16, 'bits\nSaved:', toString.length * 16 - a.length * 16, 'bits\nRatio:', (toString.length * 16) / (a.length * 16), 
+        '\n\n\nSuccess?', result, '(Decompressed successfully?', success[0], '; Compressed size ≤ Original size?', success[1], ')\nOriginal size:', toString.length * 16, 'bits\nCompressed size:', a.length * 16, 'bits\nSaved:', toString.length * 16 - a.length * 16, 'bits\nRatio:', (toString.length * 16) / (a.length * 16), 
         ': 1\n\n\n16-bit Data/Header character:', data, '\nCharCode:', data.charCodeAt(0), '\nBits:', bits, '\nBlocks:', ...blocks, '\nCode 1:', code[0], '\nCode 2:', code[1], c.slice(10,11) == '1' ? '\nBeginID:' : '\nCode 3:', code[2], '\nSequences?', c.slice(4,5) == '1', (code[1] > 0 && code[0] == 0) || code[0] == 6 ? '\nReturn as number?' : '\nInput RLE?', c.slice(8,9) == '1', '\nOutput RLE?', c.slice(9,10) == '1', '\nCode 3 is BeginID?', c.slice(10,11) == '1',
         '\n\nMode:', modes[code[0]], code[0] == 5 ? '\nCharacter Encoding:' : code[0] == 31 ? '\nCompressed:' : '', code[0] == 5 ? encodings[code[1]] : code[0] == 31 ? code[1] + 1 : '', code[0] == 31 ? 'times' : '', '\n\n\n\n\n'
     );

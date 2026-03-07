@@ -146,7 +146,7 @@ function readOptions(options, defaults) {
 }
 
 class JSSC {
-    constructor (com, dec, opts, m = 0) {
+    constructor (com, dec, opts, m = 0, workers = false) {
         const headerchar = decToBin(com.charCodeAt(0), 16);
         const code1 = headerchar.slice(11);
         const code2 = headerchar.slice(0,4);
@@ -182,6 +182,7 @@ class JSSC {
         this.output = m == 0 ? compressed : dec;
         this.options = opts;
         this.input = m == 0 ? dec : compressed;
+        this.workers = workers;
         Object.freeze(this);
     }
 }
@@ -388,11 +389,26 @@ export async function compress(input, options) {
         OE,
         LZS,
     ];
+    async function noWorkers() {
+        return await Promise.all(candidates.map(fn => safeTry(async () => await fn(context))));
+    }
+
+    let usedWorkers = false;
     if (!(opts.worker > opts.workerlimit) && originalInput.length > 64 && await canUseWorkers()) {
         results = await runInWorkers(candidates.map(fn => fn.name), context, opts.minifiedworker ? workerMin : workerURL);
-    } else {
-        results = await Promise.all(candidates.map(fn => safeTry(async () => await fn(context))));
+        usedWorkers = true;
+    } else results = await noWorkers();
+
+    if (usedWorkers && (
+        !Array.isArray(results) ||
+        results.length == 0 ||
+        results.every(c => c == null)
+    )) {
+        /* workers failed */
+        results = await noWorkers();
+        usedWorkers = false;
     }
+
     results = results.filter(r => typeof r === 'string' && r.length <= String(originalInput).length);
 
     let best;
@@ -420,7 +436,7 @@ export async function compress(input, options) {
         if (await validateOffsetEncoding(res, best, enc[2])) best = res;
     }
 
-    if (opts.debug) return new JSSC(best, originalInput, opts, 0);
+    if (opts.debug) return new JSSC(best, originalInput, opts, 0, usedWorkers);
 
     return best;
 }
@@ -805,7 +821,6 @@ export async function compressLarge(input, ...params) {
     const result = [charCode(cryptCharCode(14, false))];
     
     for (let i = 0; i < input.length; i += LENGTH) {
-        console.log(i)
         const chunk = input.slice(i, i + LENGTH);
         const compressed = await compress(chunk, ...params);
         result.push(String.fromCharCode(compressed.length), compressed);

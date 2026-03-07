@@ -124,7 +124,7 @@
     "gzip"
   ],
   "scripts": {
-    "test": "node test"
+    "test": "node test/run.cjs"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.0",
