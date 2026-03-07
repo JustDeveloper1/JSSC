@@ -25,7 +25,9 @@
     "test/index.js",
     "dist",
     "bin",
-    "lib"
+    "lib",
+    "worker.js",
+    "worker.min.js"
   ],
   "dependencies": {
     "@strc/utf16-to-any-base": "^1.0.0",
