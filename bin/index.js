@@ -45,6 +45,7 @@ let output = '';
 let str = false;
 let config = '';
 let print = false;
+let checksum = true;
 function invalidArgs() {
     const e = 'Invalid arguments.';
     console.log(prefix + e);
@@ -64,6 +65,7 @@ function help() {
             '-C                         \t--compress                        \t:\t Compress input string/file. (default)\n' +
             '-c           <file.justc>  \t--config            <file.justc>  \t:\t Set custom compressor configuration, same as the JS API, but it should be a JUSTC language script.\n' +
             '-d                         \t--decompress                      \t:\t Decompress input string/file.\n' +
+            '-dc                        \t--disable-checksum                \t:\t Do not include CRC32 in the JSSC Archive. (saves 4 bytes, but removes corruption protection)\n' +
             '-h                         \t--help                            \t:\t Print JSSC CLI usage and flags.\n' +
             '-i           <input>       \t--input             <input>       \t:\t Set input file path / Set input string.\n' +
             '-o           <output.jssc> \t--output            <output.jssc> \t:\t Set output file path.\n' +
@@ -150,6 +152,10 @@ for (const arg of args) {
             windows = true;
             break;
         }
+        case '-dc': case '--disable-checksum': {
+            checksum = false;
+            break;
+        }
         default:
             if (input == '') input = arg;
             else if (output == '') output = arg;
@@ -167,6 +173,9 @@ if (mode != -1 && input == '') {
 }
 if (args.length == 0) help();
 if (mode == -1) exit(0);
+
+if (str && windows) exit(1, 'Invalid flags. Cannot use JSSC Windows Integration to compress a string.');
+if (str && checksum) exit(1, 'Invalid flags. JSSC-compressed strings do not have a checksum.');
 
 async function collectFiles(targetPath) {
     try {
@@ -300,7 +309,7 @@ function findEmptyDirs(dir) {
 
     if (mode == 0) {
         if (isFile && print) {
-            const e = 'Invalid arguments. Cannot compress a file/directory to JSSC1 archive and print the result.';
+            const e = 'Invalid flags. Cannot compress a file/directory to JSSC1 archive and print the result.';
             console.log(prefix + e);
             exit(1, e);
         }
@@ -360,36 +369,51 @@ function findEmptyDirs(dir) {
             exit(0);
         }
 
-        function p(cd, to) {
-            return path.relative(cd, to).replaceAll("\\", "/");
+        const root = path.resolve(currentdir);
+        let prev = root;
+
+        function p(to) {
+            const abs = path.resolve(to);
+            const rel = path.relative(prev, abs);
+            prev = path.dirname(abs);
+            return rel.replaceAll("\\", "/");
         }
 
-        const files = {};
-        for (const file of input) {
-            files[
-                (await compressToBase64(p(currentdir, file), config)).replace(/=+$/, '')
-            ] = (await compressLargeToBase64(
-                fs.readFileSync(file, { encoding: 'utf8' }), 
-                config
-            )).replace(/=+$/, '');
+        const files = [];
+        for (const file of input.sort((a,b)=>a.localeCompare(b))) {
+            const current = p(file);
+
+            files.push([
+                (await compressToBase64(current, config)).replace(/=+$/, ''),
+                (await compressLargeToBase64(
+                    fs.readFileSync(file, { encoding: 'utf8' }), 
+                    config
+                )).replace(/=+$/, '')
+            ]);
         }
         const dirs = [];
         for (const dir of findEmptyDirs(inp)) {
-            dirs.push((await compressToBase64(p(currentdir, dir)).replace(/=+$/, ''), config));
+            const current = p(dir);
+            dirs.push((await compressToBase64(current, config)).replace(/=+$/, ''));
         }
         
+        const startsWithDot = extn[0] == '.';
         fs.writeFileSync(output[0] + (
             addFormat ? format : ''
         ), await toFile(
             isDir,
-            extn == '' ? null : (await compressToBase64(extn)).replace(/=+$/, ''),
+            extn == '' ? null : (await compressToBase64(
+                startsWithDot ? extn.slice(1) : extn, config
+            )).replace(/=+$/, ''),
             files,
-            dirs
+            dirs,
+            checksum,
+            startsWithDot
         ));
         exit(0);
     } else {
         if (print && isFile) {
-            const e = 'Invalid arguments. Cannot decompress JSSC1 archive and print the result.';
+            const e = 'Invalid flags. Cannot decompress JSSC1 archive and print the result.';
             console.log(prefix + e);
             exit(1, e);
         }
@@ -416,22 +440,51 @@ function findEmptyDirs(dir) {
         }
 
         try {
-            const {isDir, extn, files, dirs} = await fromFile(raw);
+            const {isDir, extn, files, dirs, startsWithDot} = await fromFile(raw);
 
-            for (const [filePath, content] of Object.entries(files).sort((a, b) => a[0].localeCompare(b[0]))) {
-                const fullPath = path.format(
-                    path.parse(
-                        (isDir
-                            ? path.join(output[0], (await decompressFromBase64(filePath)).replaceAll("/", path.sep))
-                            : output[0]
-                        ) + (!isDir ? await decompressFromBase64(extn) : ''))
-                );
+            function checkPath(p) {
+                const safe = path.resolve(p);
+                const root = path.resolve(output[0]);
+
+                if (!safe.startsWith(root + path.sep) && safe !== root) {
+                    const e = prefix + 'Attempt to extract a file or directory outside the archive root. The archive may be malicious or corrupted.';
+                    console.error(e);
+                    exit(1, e);
+                }
+
+                return safe;
+            }
+
+            let current;
+            for (const [filePath, content] of files) {
+                const delta = (await decompressFromBase64(filePath)).replaceAll("/", path.sep);
+
+                let fullPath;
+                if (typeof current === "undefined") {
+                    fullPath = path.resolve(output[0], delta);
+                } else {
+                    fullPath = path.resolve(path.dirname(current), delta);
+                }
+                if (!isDir) {
+                    fullPath += (startsWithDot ? '.' : '') + await decompressFromBase64(extn);
+                }
+                current = checkPath(fullPath);
 
                 fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-                fs.writeFileSync(fullPath, await decompressFromBase64(content), { encoding: 'utf8' });
-            };
+                fs.writeFileSync(fullPath, await decompressFromBase64(content), { encoding: "utf8" });
+            }
             for (let i = 0; i < dirs.length; i++) {
-                fs.mkdirSync((await decompressFromBase64(dirs[i])).replaceAll("/", path.sep), { recursive: true });
+                const delta = (await decompressFromBase64(dirs[i])).replaceAll("/", path.sep);
+
+                let fullPath;
+                if (typeof current === "undefined") {
+                    fullPath = path.resolve(output[0], delta);
+                } else {
+                    fullPath = path.resolve(path.dirname(current), delta);
+                }
+                current = checkPath(fullPath);
+
+                fs.mkdirSync(fullPath, { recursive: true });
             }
             exit(0);
         } catch (err) {
