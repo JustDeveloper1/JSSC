@@ -64,8 +64,7 @@ export default [
         ],
         output: {
             file: 'dist/cli.js',
-            format: 'es',
-            banner: '#!/usr/bin/env node'
+            format: 'es'
         },
         external: [
             'justc',

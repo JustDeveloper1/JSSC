@@ -1,8 +1,8 @@
 {
   "name": "strc",
-  "version": "2.1.0-test",
+  "version": "0.26.3",
   "description": "JavaScript String Compressor - lossless string compression algorithm",
-  "main": "index.js",
+  "main": "dist/jssc.cjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/justdevw/JSSC.git"
@@ -17,14 +17,10 @@
   },
   "homepage": "https://jssc.js.org/",
   "files": [
-    "index.js",
     "README.md",
     "LICENSE",
-    "index.min.js",
-    "test/index.js",
-    "dist",
-    "worker.js",
-    "worker.min.js"
+    "test/run.cjs",
+    "dist"
   ],
   "dependencies": {
     "justc": "^0.1.0"
@@ -109,10 +105,9 @@
     "directories",
     "folder",
     "folders",
-    "crc-32",
-    "semver",
-    "uint8arrays",
-    "gzip"
+    "large",
+    "base64",
+    "utf16"
   ],
   "scripts": {
     "test": "node test/run.cjs"
@@ -133,11 +128,11 @@
   },
   "module": "dist/jssc.mjs",
   "browser": "dist/jssc.js",
-  "types": "src/index.d.ts",
-  "unpkg": "./index.min.js",
+  "types": "dist/jssc.d.ts",
+  "unpkg": "dist/jssc.min.js",
   "bin": {
-    "jssc": "./dist/cli.js",
-    "strc": "./dist/cli.js"
+    "jssc": "dist/cli.js",
+    "strc": "dist/cli.js"
   },
   "type": "module"
 }

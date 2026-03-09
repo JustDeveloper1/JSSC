@@ -28,4 +28,4 @@ jobs:
       - run: bash src/build.sh
 
       - name: Publish
-        run: npm publish --access public
+        run: npm publish --access public || npm publish --access public --tag beta
