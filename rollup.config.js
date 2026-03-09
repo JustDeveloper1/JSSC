@@ -51,5 +51,30 @@ export default [
             'justc',
             'node:worker_threads'
         ]
+    },
+    {
+        input: 'bin/index.js',
+        plugins: [
+            resolve({
+                preferBuiltins: true,
+                exportConditions: ['node']
+            }),
+            json(),
+            commonjs()
+        ],
+        output: {
+            file: 'dist/cli.js',
+            format: 'es',
+            banner: '#!/usr/bin/env node'
+        },
+        external: [
+            'justc',
+            'fs',
+            'path',
+            'url',
+            'child_process',
+            'os',
+            'https'
+        ]
     }
 ]

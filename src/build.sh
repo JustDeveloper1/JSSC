@@ -15,5 +15,8 @@ cp dist/worker.js worker.js
 cp dist/worker.min.js worker.min.js
 cp src/index.d.ts dist/jssc.d.ts
 cp src/index.d.ts index.d.ts
+npx terser dist/cli.js -c -m --module --format "ascii_only=true" -o dist/cli.min.js
+cp dist/cli.js cli.js
+cp dist/cli.min.js cli.min.js
 
 bash src/prefix.sh

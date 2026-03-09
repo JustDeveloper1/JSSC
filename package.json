@@ -18,25 +18,16 @@
   "homepage": "https://jssc.js.org/",
   "files": [
     "index.js",
-    "src",
     "README.md",
     "LICENSE",
     "index.min.js",
     "test/index.js",
     "dist",
-    "bin",
-    "lib",
     "worker.js",
     "worker.min.js"
   ],
   "dependencies": {
-    "@strc/utf16-to-any-base": "^1.0.0",
-    "crc-32": "^1.2.2",
-    "justc": "^0.1.0",
-    "lz-string": "^1.5.0",
-    "semver": "^7.7.4",
-    "uint8arrays": "^5.1.0",
-    "utf8": "^3.0.0"
+    "justc": "^0.1.0"
   },
   "keywords": [
     "compressor",
@@ -131,15 +122,22 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "rollup": "^4.57.1",
-    "terser": "^5.46.0"
+    "terser": "^5.46.0",
+    
+    "lz-string": "^1.5.0",
+    "semver": "^7.7.4",
+    "uint8arrays": "^5.1.0",
+    "utf8": "^3.0.0",
+    "@strc/utf16-to-any-base": "^1.0.0",
+    "crc-32": "^1.2.2"
   },
   "module": "dist/jssc.mjs",
   "browser": "dist/jssc.js",
   "types": "src/index.d.ts",
   "unpkg": "./index.min.js",
   "bin": {
-    "jssc": "./bin/index.js",
-    "strc": "./bin/index.js"
+    "jssc": "./dist/cli.js",
+    "strc": "./dist/cli.js"
   },
   "type": "module"
 }

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import fs from "fs";
 import path from "path";
 import { compress, decompress, compressLargeToBase64, compressToBase64, decompressFromBase64 } from "../src/index.js";
