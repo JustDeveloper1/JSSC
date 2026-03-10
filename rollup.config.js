@@ -75,5 +75,53 @@ export default [
             'os',
             'https'
         ]
+    },
+    {
+        input: 'bin/windows/install.js',
+        plugins: [
+            resolve({
+                preferBuiltins: true,
+                exportConditions: ['node']
+            }),
+            json(),
+            commonjs()
+        ],
+        output: {
+            file: 'dist/windows/install.js',
+            format: 'es'
+        },
+        external: [
+            'justc',
+            'fs',
+            'path',
+            'url',
+            'child_process',
+            'os',
+            'https'
+        ]
+    },
+    {
+        input: 'bin/windows/uninstall.js',
+        plugins: [
+            resolve({
+                preferBuiltins: true,
+                exportConditions: ['node']
+            }),
+            json(),
+            commonjs()
+        ],
+        output: {
+            file: 'dist/windows/uninstall.js',
+            format: 'es'
+        },
+        external: [
+            'justc',
+            'fs',
+            'path',
+            'url',
+            'child_process',
+            'os',
+            'https'
+        ]
     }
 ]
