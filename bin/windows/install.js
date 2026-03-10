@@ -12,6 +12,7 @@ import https from "https";
 import { fileURLToPath } from "url";
 import { confirm, welcome } from "./ui.js";
 import { name__, repo, site } from "../../lib/meta.js";
+import { message } from "./message.js";
 
 if (
     (()=>{
@@ -92,7 +93,11 @@ function showProgress() {
 async function setup() {
     const progressUI = showProgress();
 
-    await downloadIcon();
+    try {
+        await downloadIcon();
+    } catch (err) {
+        throw new Error('Failed to download icon:', err.message, '\n' + err.trace);
+    }
 
     let e = [false, undefined];
     try {
@@ -159,6 +164,8 @@ if (confirm(name__,
     '[Yes] - Install JSSC Windows integration\n' + 
     '[No] - Do not install JSSC Windows integration',
 repo, site)) setup().catch(err => {
-    console.error("Installation failed:", err.message);
+    const e = "Installation failed: " + err.message;
+    console.error(e, '\n' + err.trace);
+    message(name__, e);
     process.exit(1);
 });
