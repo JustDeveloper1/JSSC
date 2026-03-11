@@ -5,7 +5,8 @@ if ((String.fromCharCode(65536).charCodeAt(0) === 65536) || !(String.fromCharCod
 
 import { 
     compress, decompress, compressLarge,
-    compressToBase64, compressLargeToBase64, decompressFromBase64
+    compressToBase64, compressLargeToBase64, decompressFromBase64,
+    getWorkerURL, setWorkerURL
 } from './core.js';
 import { setMaxCache, getMaxCache, validateCache } from './cache.js';
 
@@ -25,10 +26,18 @@ const cache = {
         return validateCache.size;
     }
 }
+const worker = {
+    get['url'] () {
+        return getWorkerURL();
+    },
+    set['url'] (url) {
+        setWorkerURL(url);
+    }
+}
 
 export {
     compress, decompress, compressLarge,
     compressToBase64, compressLargeToBase64, decompressFromBase64,
 
-    cache, version
+    cache, version, worker
 }

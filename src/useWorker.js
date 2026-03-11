@@ -25,7 +25,7 @@ export async function canUseWorkers() {
     return !!WorkerImpl;
 }
 
-export async function runInWorkers(candidateNames, context, workerURL) {
+export async function runInWorkers(candidateNames, context, workerURL, custom = false) {
     await init();
 
     const queue = [...candidateNames];
@@ -43,8 +43,12 @@ export async function runInWorkers(candidateNames, context, workerURL) {
                 const name = queue.shift();
 
                 const worker = new WorkerImpl(
-                    new URL(workerURL, import.meta.url),
-                    { type: 'module' }
+                    (
+                        custom ? new URL(workerURL) : 
+                        new URL(workerURL, import.meta.url)
+                    ), {
+                        type: 'module'
+                    }
                 );
 
                 active++;

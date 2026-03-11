@@ -395,8 +395,17 @@ export async function compress(input, options) {
 
     let usedWorkers = false;
     if (!(opts.worker > opts.workerlimit) && originalInput.length > 64 && await canUseWorkers()) {
-        results = await runInWorkers(candidates.map(fn => fn.name), context, opts.minifiedworker ? workerMin : workerURL);
-        usedWorkers = true;
+        try {
+            usedWorkers = true;
+            results = await runInWorkers(
+                candidates.map(fn => fn.name), 
+                context, 
+                customWorkerURL != null && typeof customWorkerURL != 'undefined' ? customWorkerURL
+                : opts.minifiedworker ? workerMin : workerURL
+            );
+        } catch (err) {
+            if (opts.debug) console.warn(err);
+        }
     } else results = await noWorkers();
 
     if (usedWorkers && (
@@ -1394,4 +1403,26 @@ export async function LZS(context) {
     const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
     if (await validate(res, originalInput)) return res;
     return null;
+}
+
+let customWorkerURL = null;
+export function setWorkerURL(url) {
+    if (
+        (typeof url != 'string' && typeof url != 'object' && typeof url != 'undefined') ||
+        (
+            typeof url == 'string' && (()=>{
+                try {
+                    new URL(url);
+                    return false;
+                } catch {
+                    return true;
+                }
+            })()
+        )
+    ) throw new Error(prefix+'invalid URL.');
+    customWorkerURL = url;
+}
+export function getWorkerURL() {
+    if (typeof customWorkerURL == 'string' || typeof customWorkerURL == 'object') return customWorkerURL;
+    return workerURL;
 }
