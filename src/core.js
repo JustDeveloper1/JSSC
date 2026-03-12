@@ -1371,13 +1371,13 @@ export async function B64P(context) {
     const { data, length } = compressB64(str);
 
     let len = '';
-    if (length > 15) {
-        const lng = length - 16
+    if (length > 14) {
+        const lng = length - 15
         if (lng > 0xFFFF) return null;
         len = String.fromCharCode(lng);
     }
 
-    const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, Math.min(length, 16), false, code3)) + len + data;
+    const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, Math.min(length, 15), false, code3)) + len + data;
     if (await validate(res, originalInput)) return res;
     return null;
 }
