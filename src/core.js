@@ -29,6 +29,7 @@ import lz from 'lz-string'; const { cLZ, dLZ } = (()=>{
 })();
 import { runInWorkers, canUseWorkers, workerURL, workerMin } from './useWorker.js';
 import { validateCache, setCache } from './cache.js';
+import { compress as cAXOR, decompress as dAXOR } from './modes/axor.js';
 
 function cryptCharCode(
     code, get = false,
@@ -86,8 +87,9 @@ function cryptCharCode(
     | Base-64 Integer Encoding         | B64IE      |      13 | 12            | 00            | 2.1.0 |
     | Base-64 Packing                  | B64P       |      14 | 13            | 00 - 15       | 2.1.0 |
     | Offset Encoding                  | OE         |      15 | 30            | custom layout | 2.1.0 |
-    | lzstring                         | LZ         |      16 | 29            | 00            | 2.1.0 |
+    | lz-string                        | LZ         |      16 | 29            | 00            | 2.1.0 |
     | Chunkification                   | C          |      17 | 14            | 00            | 2.1.0 |
+    | Adaptive XOR                     | AXOR       |      18 | 15            | 00 - 15       | 2.1.0 |
     |----------------------------------|------------|---------|---------------|---------------|-------|
 
 */
@@ -393,6 +395,7 @@ export async function compress(input, options) {
         B64P,
         OE,
         LZS,
+        AXOR
     ];
     async function noWorkers() {
         return await Promise.all(candidates.map(fn => safeTry(async () => await fn(context))));
@@ -788,6 +791,8 @@ export async function decompress(str, stringify = false) {
                 output.push(await decompress(realstr.slice(i, length)));
             }
             return checkOutput(output.join(''));
+        case 15:
+            return await processOutput(dAXOR(realstr, strcodes.code2));
         case 29:
             return await processOutput(dLZ(realstr));
         case 30:
@@ -1406,6 +1411,17 @@ export async function LZS(context) {
     const {str, code3, repeatBefore, beginId, opts, originalInput} = context;
     if (!opts.lzstring) return null;
     const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
+    if (await validate(res, originalInput)) return res;
+    return null;
+}
+
+/*
+ * Adaptive XOR
+ */
+export async function AXOR(context) {
+    const {str, code3, repeatBefore, beginId, originalInput} = context;
+    const [compressed, mode] = cAXOR(str);
+    const res = charCode(cryptCharCode(15, false, repeatBefore, false, beginId, mode, false, code3)) + compressed;
     if (await validate(res, originalInput)) return res;
     return null;
 }

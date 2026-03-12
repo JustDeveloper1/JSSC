@@ -14,8 +14,7 @@ import {
     B64P,
     OE,
     LZS,
-    compress,
-    decompress
+    AXOR,
 } from './core.js';
 
 const map = {
@@ -34,6 +33,7 @@ const map = {
     B64P,
     OE,
     LZS,
+    AXOR
 };
 
 let port;
