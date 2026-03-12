@@ -65,27 +65,32 @@ function cryptCharCode(
         return binToDec(sixteenBits);
     }
 }
-/*          Code 1 usage table          */ /* Mode ID */
-/* ------------------------------------ */ /* ------- */
-/* 00: No Compression                   */ /* 00      */
-/* 01: Two-Digit CharCode Concatenation */ /* 01      */
-/* 02: Two-Byte CharCode Concatenation  */ /* 02      */
-/* 03: Decimal Integer Packing          */ /* 03      */
-/* 04: Alphabet Encoding                */ /* 04      */
-/* 05: Character Encoding               */ /* 05      */
-/* 06: Inline Integer Encoding          */ /* 06      */
-/* 07: Frequency Map                    */ /* 07      */
-/* 08: URL                              */ /* 08      */
-/* 09: Segmentation                     */ /* 09      */
-/* 10: String Repetition                */ /* 10      */
-/* 11: Emoji Packing                    */ /* 12      */
-/* 12: Base-64 Integer Encoding         */ /* 13      */
-/* 13: Base-64 Packing                  */ /* 14      */
-/* 14: Segmentation                     */ /* 17      */
-/* 15 - 28: Reserved                    */ /* --      */
-/* 29: lzstring                         */ /* 16      */
-/* 30: Offset Encoding                  */ /* 15      */
-/* 31: Recursive Compression            */ /* 11      */
+
+/*
+     _________________________________________________________________________________________________
+    | Name                             | Short name | Mode ID | Code #1 usage | Code #2 usage | Since |
+    |----------------------------------|------------|---------|---------------|---------------|-------|
+    | No Compression                   | NC         |       0 | 00            | 00            | 1.0.0 |
+    | Two-Digit CharCode Concatenation | TDCCC      |       1 | 01            | 00            | 1.0.0 |
+    | Two-Byte CharCode Concatenation  | TBCCC      |       2 | 02            | 00            | 1.0.0 |
+    | Decimal Integer Packing          | DIP        |       3 | 03            | 00            | 1.0.0 |
+    | Alphabet Encoding                | AE         |       4 | 04            | 00 - 15       | 1.1.0 |
+    | Character Encoding               | CE         |       5 | 05            | 00 - 15       | 1.0.0 |
+    | Inline Integer Encoding          | IIE        |       6 | 00 / 06       | 01 - 15       | 2.0.0 |
+    | Frequency Map                    | FM         |       7 | 07            | 00 - 15       | 2.0.0 |
+    | URL                              | URL        |       8 | 08            | 00 - 15       | 2.0.0 |
+    | Segmentation                     | S          |       9 | 09            | 00 - 15       | 2.0.0 |
+    | String Repetition                | SR         |      10 | 10            | 00 - 15       | 2.0.0 |
+    | Recursive Compression            | RC         |      11 | 31            | 00 - 15       | 2.0.0 |
+    | Emoji Packing                    | EP         |      12 | 11            | 00            | 2.1.0 |
+    | Base-64 Integer Encoding         | B64IE      |      13 | 12            | 00            | 2.1.0 |
+    | Base-64 Packing                  | B64P       |      14 | 13            | 00 - 15       | 2.1.0 |
+    | Offset Encoding                  | OE         |      15 | 30            | custom layout | 2.1.0 |
+    | lzstring                         | LZ         |      16 | 29            | 00            | 2.1.0 |
+    | Chunkification                   | C          |      17 | 14            | 00            | 2.1.0 |
+    |----------------------------------|------------|---------|---------------|---------------|-------|
+
+*/
 
 async function tryRecursive(base, opts) {
     if (!opts.recursivecompression) return base;
