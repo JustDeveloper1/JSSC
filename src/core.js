@@ -152,6 +152,34 @@ function readOptions(options, defaults) {
     return defaults;
 }
 
+function getModeID(code1, code2) {
+    switch (code1) {
+        case 0:
+            return code2 == 0 ? 0 : 6;
+        case 11: {
+            switch (code2) {
+                case 0:
+                    return 12;
+                case 1:
+                    return 13;
+                case 2:
+                    return 16;
+                case 3:
+                    return 17;
+            }
+        }
+        case 12:
+            return 14;
+        case 13:
+            return 18;
+        case 30:
+            return 15;
+        case 31:
+            return 11;
+        default:
+            return code1;
+    }
+}
 class JSSC {
     constructor (com, dec, opts, m = 0, workers = false) {
         const headerchar = decToBin(com.charCodeAt(0), 16);
@@ -164,27 +192,27 @@ class JSSC {
         const b = headerchar.slice(10,11);
 
         const compressed = {
-                string: com,
-                header: {
-                    code: binToDec(headerchar),
-                    bin: headerchar,
-                    blocks: [
-                        code2,
-                        s,
-                        code3,
-                        i,
-                        o,
-                        b,
-                        code1
-                    ],
-                    code1, code2, code3,
-                    s: s == '1',
-                    i: i == '1',
-                    o: o == '1',
-                    b: b == '0'
-                },
-                mode: binToDec(code1)
-            }
+            string: com,
+            header: {
+                code: binToDec(headerchar),
+                bin: headerchar,
+                blocks: [
+                    code2,
+                    s,
+                    code3,
+                    i,
+                    o,
+                    b,
+                    code1
+                ],
+                code1, code2, code3,
+                s: s == '1',
+                i: i == '1',
+                o: o == '1',
+                b: b == '0'
+            },
+            mode: getModeID(binToDec(code1), binToDec(code2))
+        }
 
         this.output = m == 0 ? compressed : dec;
         this.options = opts;
