@@ -84,12 +84,12 @@ function cryptCharCode(
     | String Repetition                | SR         |      10 | 10            | 00 - 15       | 2.0.0 |
     | Recursive Compression            | RC         |      11 | 31            | 00 - 15       | 2.0.0 |
     | Emoji Packing                    | EP         |      12 | 11            | 00            | 2.1.0 |
-    | Base-64 Integer Encoding         | B64IE      |      13 | 12            | 00            | 2.1.0 |
-    | Base-64 Packing                  | B64P       |      14 | 13            | 00 - 15       | 2.1.0 |
+    | Base-64 Integer Encoding         | B64IE      |      13 | 11            | 01            | 2.1.0 |
+    | Base-64 Packing                  | B64P       |      14 | 12            | 00 - 15       | 2.1.0 |
     | Offset Encoding                  | OE         |      15 | 30            | custom layout | 2.1.0 |
-    | lz-string                        | LZ         |      16 | 29            | 00            | 2.1.0 |
-    | Chunkification                   | C          |      17 | 14            | 00            | 2.1.0 |
-    | Adaptive XOR                     | AXOR       |      18 | 15            | 00 - 15       | 2.1.0 |
+    | lz-string                        | LZ         |      16 | 11            | 02            | 2.1.0 |
+    | Chunkification                   | C          |      17 | 11            | 03            | 2.1.0 |
+    | Adaptive XOR                     | AXOR       |      18 | 13            | 00 - 15       | 2.1.0 |
     |----------------------------------|------------|---------|---------------|---------------|-------|
 
 */
@@ -613,9 +613,9 @@ export async function decompress(str, stringify = false) {
     const output = [];
     switch (strcode) {
         case 0: case 6:
-            if (strcodes.code2 > 0) return await processOutput(String(strcodes.code2 - 1));
-            return await processOutput(realstr);
-        case 1:
+            if (strcodes.code2 > 0) return await processOutput(String(strcodes.code2 - 1)); /* Inline Integer Encoding */
+            return await processOutput(realstr); /* No Compression */
+        case 1: /* Two-Digit CharCode Concatenation */
             function addChar(cde) {
                 output.push(String.fromCharCode(cde));
             }
@@ -632,7 +632,7 @@ export async function decompress(str, stringify = false) {
                 }
             }
             return await processOutput(output.join(''));
-        case 2:
+        case 2: /* Two-Byte CharCode Concatenation */
             function toChar(binCode) {
                 return String.fromCharCode(binToDec(binCode));
             }
@@ -649,7 +649,7 @@ export async function decompress(str, stringify = false) {
                 }
             }
             return await processOutput(output.join(''));
-        case 3:
+        case 3: /* Decimal Integer Packing */
             for (let i = 0; i < realstr.length; i++) {
                 const char = realstr.charCodeAt(i);
                 const binCodes = stringChunks(decToBin(char, 16), 4);
@@ -661,7 +661,7 @@ export async function decompress(str, stringify = false) {
                 }
             }
             return await processOutput(output.join(''));
-        case 4:
+        case 4: /* Alphabet Encoding */
             const chars = [];
             for (let i = 0; i < realstr.slice(0, strcodes.code2).length; i++) {
                 chars.push(realstr[i]);
@@ -676,17 +676,17 @@ export async function decompress(str, stringify = false) {
                 }
             }
             return await processOutput(output.join(''));
-        case 5:
+        case 5: /* Character Encoding */
             const decoded = characterEncodings(strcodes.code2, realstr);
             if (decoded) {
                 return await processOutput(decoded);
             } else throw new Error(prefix+'Invalid compressed string');
-        case 7:
+        case 7: /* Frequency Map */
             const splitter = freqMapSplitters[binToDec(decToBin(strcodes.code2).slice(1))];
             let output_ = freqMap.decompress(realstr, splitter);
             if (parseInt(decToBin(strcodes.code2).slice(0,1)) == 1) output_ = output_.slice(0,-1);
             return await processOutput(output_);
-        case 8: {
+        case 8: { /* URL */
             let bytes = [];
             for (const ch of realstr) {
                 const c = ch.charCodeAt(0);
@@ -716,7 +716,7 @@ export async function decompress(str, stringify = false) {
             }
 
             return await processOutput(out);}
-        case 9: {
+        case 9: { /* Segmentation */
             let idx = 0;
             const segCount = strcodes.code2 < 15 ? strcodes.code2 + 2 : realstr.charCodeAt(idx++) + 2;
 
@@ -733,72 +733,80 @@ export async function decompress(str, stringify = false) {
             }
 
             return await processOutput(output.join(''));}
-        case 10:
+        case 10: /* String Repetition */
             const sliceChar = strcodes.code2 == 15;
             const repeatCount = sliceChar ? realstr.charCodeAt(0) + 15 : strcodes.code2;
             if (sliceChar) realstr = realstr.slice(1);
             return await processOutput(realstr.repeat(repeatCount));
         case 11: {
-            const base = 0x1F300;
+            switch (strcodes.code2) {
+                case 0: { /* Emoji Packing */
+                    const base = 0x1F300;
 
-            let bits = [];
+                    let bits = [];
 
-            for (let i = 0; i < realstr.length; i++) {
-                const code = realstr.charCodeAt(i);
-                bits.push(code.toString(2).padStart(16, '0'));
-            }
-            bits = bits.join('');
+                    for (let i = 0; i < realstr.length; i++) {
+                        const code = realstr.charCodeAt(i);
+                        bits.push(code.toString(2).padStart(16, '0'));
+                    }
+                    bits = bits.join('');
 
-            let pos = 0;
-            
-            while (pos + 3 <= bits.length) {
-                const length = parseInt(bits.slice(pos, pos + 3), 2);
-                pos += 3;
+                    let pos = 0;
+                    
+                    while (pos + 3 <= bits.length) {
+                        const length = parseInt(bits.slice(pos, pos + 3), 2);
+                        pos += 3;
 
-                if (length === 0) break;
+                        if (length === 0) break;
 
-                if (pos + (length * 11) > bits.length) break;
+                        if (pos + (length * 11) > bits.length) break;
 
-                const cluster = [];
+                        const cluster = [];
 
-                for (let i = 0; i < length; i++) {
-                    const delta = parseInt(bits.slice(pos, pos + 11), 2);
-                    pos += 11;
+                        for (let i = 0; i < length; i++) {
+                            const delta = parseInt(bits.slice(pos, pos + 11), 2);
+                            pos += 11;
 
-                    const cp = base + delta;
-                    cluster.push(String.fromCodePoint(cp));
+                            const cp = base + delta;
+                            cluster.push(String.fromCodePoint(cp));
+                        }
+
+                        output.push(cluster.join(''));
+                    }
+
+                    return checkOutput(output.join(''));
                 }
-
-                output.push(cluster.join(''));
+                case 1: { /* Base-64 Integer Encoding */
+                    return checkOutput(await decompress(
+                        await processOutput(convertBase(realstr, 64, 10), false)
+                    ));
+                }
+                case 2: { /* lz-string */
+                    return await processOutput(dLZ(realstr));
+                }
+                case 3: { /* Chunkification */
+                    let i = 0;
+                    while (i < realstr.length) {
+                        const length = realstr.charCodeAt(i) + i;
+                        i++;
+                        output.push(await decompress(realstr.slice(i, length)));
+                    }
+                    return checkOutput(output.join(''));
+                }
+                default: throw new Error(prefix+'Invalid compressed string');
             }
-
-            return checkOutput(output.join(''));
         }
-        case 12:
-            return checkOutput(await decompress(
-                await processOutput(convertBase(realstr, 64, 10), false)
-            ));
-        case 13:
+        case 12: /* Base-64 Packing */
             let len = strcodes.code2;
             let slice = len == 16;
             if (slice) len = realstr.slice(0,1).charCodeAt(0) + 16;
             return await processOutput(decompressB64(slice ? realstr.slice(1) : realstr, len));
-        case 14:
-            let i = 0;
-            while (i < realstr.length) {
-                const length = realstr.charCodeAt(i) + i;
-                i++;
-                output.push(await decompress(realstr.slice(i, length)));
-            }
-            return checkOutput(output.join(''));
-        case 15:
+        case 13: /* Adaptive XOR */
             return await processOutput(dAXOR(realstr, strcodes.code2));
-        case 29:
-            return await processOutput(dLZ(realstr));
-        case 30:
+        case 30: /* Offset Encoding */
             const dec = offsetDecoding(realstr, binToDec(decToBin(charcode, 16).slice(0,11)));
             return checkOutput(await decompress(dec));
-        case 31: {
+        case 31: { /* Recursive Compression */
             let out = realstr;
             const depth = strcodes.code2;
 
@@ -837,7 +845,7 @@ export async function decompressFromBase64(base64, ...params) {
 
 export async function compressLarge(input, ...params) {
     const LENGTH = 1024;
-    const result = [charCode(cryptCharCode(14, false))];
+    const result = [charCode(cryptCharCode(11, false, false, false, undefined, undefined, false, 3))];
     
     for (let i = 0; i < input.length; i += LENGTH) {
         const chunk = input.slice(i, i + LENGTH);
@@ -979,7 +987,7 @@ export async function B64IE(context) {
         base64IntegerEncoding: false,
         depth: opts.depth + 1,
     });
-    output = charCode(cryptCharCode(12, false, isNum, RLE, -1, 0, seq, code3)) + output;
+    output = charCode(cryptCharCode(11, false, isNum, RLE, -1, 1, seq, code3)) + output;
     if (!(await validate(output, originalInput))) return null;
     return output;
 }
@@ -1382,7 +1390,7 @@ export async function B64P(context) {
         len = String.fromCharCode(lng);
     }
 
-    const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, Math.min(length, 15), false, code3)) + len + data;
+    const res = charCode(cryptCharCode(12, false, repeatBefore, false, beginId, Math.min(length, 15), false, code3)) + len + data;
     if (await validate(res, originalInput)) return res;
     return null;
 }
@@ -1410,7 +1418,7 @@ export async function OE(context) {
 export async function LZS(context) {
     const {str, code3, repeatBefore, beginId, opts, originalInput} = context;
     if (!opts.lzstring) return null;
-    const res = charCode(cryptCharCode(29, false, repeatBefore, false, beginId, 0, false, code3)) + cLZ(str);
+    const res = charCode(cryptCharCode(11, false, repeatBefore, false, beginId, 2, false, code3)) + cLZ(str);
     if (await validate(res, originalInput)) return res;
     return null;
 }
@@ -1421,7 +1429,7 @@ export async function LZS(context) {
 export async function AXOR(context) {
     const {str, code3, repeatBefore, beginId, originalInput} = context;
     const [compressed, mode] = cAXOR(str);
-    const res = charCode(cryptCharCode(15, false, repeatBefore, false, beginId, mode, false, code3)) + compressed;
+    const res = charCode(cryptCharCode(13, false, repeatBefore, false, beginId, mode, false, code3)) + compressed;
     if (await validate(res, originalInput)) return res;
     return null;
 }
